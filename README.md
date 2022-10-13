@@ -15,4 +15,5 @@
 </a>
 </p>
 
+Project on convective penetration implementation in MESA.
 An open source scientific article created using the [showyourwork](https://github.com/showyourwork/showyourwork) workflow.
