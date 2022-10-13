@@ -16,4 +16,7 @@
 </p>
 
 Project on convective penetration implementation in MESA.
+
+[New overleaf link](https://www.overleaf.com/project/6348299a3498506108f5c309)
+
 An open source scientific article created using the [showyourwork](https://github.com/showyourwork/showyourwork) workflow.
