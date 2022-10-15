@@ -1,0 +1,14 @@
+#!/bin/bash
+
+rm -f restart_photo
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+if [ $# -eq 0 ]
+then
+    ./star inlist_dbcp
+else
+    ./star $1
+fi
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"

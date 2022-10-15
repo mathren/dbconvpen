@@ -1,3 +1,5 @@
+name:
+  - dbconvpen
 channels:
   - defaults
   - conda-forge
@@ -5,5 +7,7 @@ dependencies:
   - numpy=1.19.2
   - pip=21.0.1
   - python=3.9
+  - joblib=1.1.0
   - pip:
       - matplotlib==3.4.3
+      - git+https://github.com/mathren/compare_workdir_MESA/

@@ -1,0 +1,121 @@
+&star_job
+
+pgstar_flag=.true.
+
+save_model_when_terminate=.false.
+save_model_filename='MASS_exp_ov.mod'
+
+initial_zfracs=8.0
+
+change_net=.true.
+change_initial_net=.false.
+new_net_name='mesa_45.net' ! 'cno_extras_o18_to_mg26_plus_fe56.net'
+
+/ !end star_job namelist
+
+&eos
+/ !end eos namelist
+
+&kap
+
+use_type2_opacities=.true.
+zbase=0.02
+kap_file_prefix='OP_a09_nans_removed_by_hand'
+
+cubic_interpolation_in_z=.true.
+cubic_interpolation_in_x=.true.
+
+/ !end kap namelist
+
+&controls
+
+initial_mass=8.0
+initial_z=0.02
+
+! Mixing
+
+use_ledoux_criterion=.true.
+mlt_option='Cox'
+mixing_length_alpha=1.8
+
+do_conv_premix=.false.
+predictive_mix(1)=.true.
+predictive_zone_loc(1)='core'
+predictive_zone_type(1)='any'
+predictive_bdy_loc(1)='top'
+
+overshoot_scheme(1)='exponential'
+overshoot_zone_loc(1)='core'
+overshoot_zone_type(1)='any'
+overshoot_bdy_loc(1)='top'
+overshoot_f0(1)=0.005
+overshoot_f(1)=0.02
+
+! Atmosphere
+
+atm_t_tau_opacity='iterated'
+atm_option='T_tau'
+atm_t_tau_relation='Krishna_Swamy'
+
+! Wind
+
+hot_wind_scheme='Dutch'
+cool_wind_rgb_scheme='Dutch'
+cool_wind_agb_scheme='Dutch'
+dutch_scaling_factor=0.8
+
+! Solver
+
+use_gold_tolerances=.true.
+energy_eqn_option='dedt'
+
+! Resolution
+
+mesh_delta_coeff=0.4
+max_allowed_nz=10000000.0
+varcontrol_target=1d-4
+max_allowed_varcontrol_target=1d-05
+
+threshold_for_smooth_gradl_composition_term=0.02
+num_cells_for_smooth_brunt_b=10.0
+num_cells_for_smooth_gradl_composition_term=10.0
+
+threshold_for_smooth_brunt_b=0.1
+
+! When to stop
+
+stop_near_zams=.false.
+
+! stop at C depl
+x_logical_ctrl(1) = .true.
+! change net on the fly and stop at onset of core-collapse
+x_logical_ctrl(2) =.false.
+
+! Output
+terminal_interval=100.0
+history_interval=1.0
+
+write_profiles_flag=.true.
+profile_interval=100.0
+profile_data_prefix='08Msun_ExpOv_'
+profile_data_suffix='.profile'
+
+write_pulse_data_with_profile=.true.
+pulse_data_format='GYRE'
+keep_surface_point_for_pulse_data=.true.
+add_atmosphere_to_pulse_data=.true.
+interpolate_rho_for_pulse_data=.true.
+add_center_point_to_pulse_data=.true.
+
+do_history_file=.true.
+star_history_name='08Msun_ExpOv.history'
+
+/ !end controls namelist
+
+
+&pgstar
+
+read_extra_pgstar_inlist1 = .true.
+extra_pgstar_inlist1_name = 'pgstar/inlist_exp_ov' ! 'pgstar/inlist_pgstar_post_MS'
+
+/ ! end of pgstar namelist

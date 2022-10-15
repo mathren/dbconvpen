@@ -1,0 +1,70 @@
+&pgstar
+
+pgstar_interval = 2
+pgstar_show_age_in_years = .true.
+pgstar_show_age_in_seconds = .false.
+pgstar_sleep = 0.0
+
+! some global grid plot settings at end
+
+pgstar_show_model_number = .false.
+pgstar_show_age = .false.
+
+!------------------------------------------------------------------------------------
+
+Profile_Panels1_win_flag = .true.
+
+Profile_Panels1_win_width = 11
+Profile_Panels1_win_aspect_ratio = 1.0
+
+Profile_Panels1_xleft = 0.15
+Profile_Panels1_xright = 0.85
+Profile_Panels1_ybot = 0.15
+Profile_Panels1_ytop = 0.85
+Profile_Panels1_txt_scale = 1.0
+Profile_Panels1_title = 'Exponential Overshooting'
+
+! ::
+
+Profile_Panels1_xaxis_name = 'mass'
+Profile_Panels1_xaxis_reversed = .false.
+Profile_Panels1_xmin = -101d0
+Profile_Panels1_xmax = -101d0
+Profile_Panels1_xmargin = 0d0
+Profile_Panels1_show_mix_regions_on_xaxis = .false.
+
+Profile_Panels1_show_grid = .false.
+
+! setup default plot
+
+! ::
+
+Profile_Panels1_num_panels = 5
+Profile_Panels1_yaxis_name(1) = 'grada' ! 'gradr'
+Profile_Panels1_other_yaxis_name(1) = 'gradr'
+Profile_Panels1_yaxis_name(2) = 'gradL'
+Profile_Panels1_other_yaxis_name(2) = 'logS'
+Profile_Panels1_yaxis_name(3) = 'x'
+Profile_Panels1_other_yaxis_name(3) = 'y'
+Profile_Panels1_yaxis_name(4) = 'brunt_N2'
+Profile_Panels1_other_yaxis_name(4) = 'brunt_B'
+Profile_Panels1_yaxis_name(5) = 'log_D_mix'
+Profile_Panels1_other_yaxis_name(5) = 'log_D_conv'
+
+
+
+Profile_Panels1_file_dir = 'png'
+Profile_Panels1_file_prefix = 'ExpOv_'
+Profile_Panels1_file_interval = 1
+Profile_Panels1_file_width  = -1
+Profile_Panels1_file_aspect_ratio  = -1
+
+
+! white_on_black flags -- true means white foreground color on black background
+file_white_on_black_flag = .true.
+file_device = 'png'            ! options 'png' and 'vcps' for png and postscript respectively
+file_extension = 'png'           ! common names are 'png' and 'ps'
+
+
+
+/ ! end of pgstar namelist
