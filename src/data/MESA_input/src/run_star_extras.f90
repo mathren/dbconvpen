@@ -309,6 +309,7 @@
                 call star_write_model(s% id, fname, ierr)
                 s% job% change_net = .true.
                 s% job% change_initial_net = .true.
+                s% job% adjust_abundances_for_new_isos = .true.
                 s% job% new_net_name = "mesa_128.net"
                 write(*,*) "Change net to ", s% job%new_net_name
                 ! flip switch so we don't enter here again

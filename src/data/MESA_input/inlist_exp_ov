@@ -5,11 +5,11 @@ pgstar_flag=.true.
 save_model_when_terminate=.false.
 save_model_filename='MASS_exp_ov.mod'
 
-initial_zfracs=8.0
+initial_zfracs=8
 
 change_net=.true.
 change_initial_net=.false.
-new_net_name='mesa_45.net' ! 'cno_extras_o18_to_mg26_plus_fe56.net'
+new_net_name=  'cno_extras_o18_to_mg26_plus_fe56.net'! 'mesa_45.net' !
 
 / !end star_job namelist
 
@@ -72,13 +72,13 @@ energy_eqn_option='dedt'
 ! Resolution
 
 mesh_delta_coeff=0.4
-max_allowed_nz=10000000.0
+max_allowed_nz=10000000
 varcontrol_target=1d-4
-max_allowed_varcontrol_target=1d-05
+min_allowed_varcontrol_target=1d-5
 
 threshold_for_smooth_gradl_composition_term=0.02
-num_cells_for_smooth_brunt_b=10.0
-num_cells_for_smooth_gradl_composition_term=10.0
+num_cells_for_smooth_brunt_b=10
+num_cells_for_smooth_gradl_composition_term=10
 
 threshold_for_smooth_brunt_b=0.1
 
@@ -92,11 +92,11 @@ x_logical_ctrl(1) = .true.
 x_logical_ctrl(2) =.false.
 
 ! Output
-terminal_interval=100.0
-history_interval=1.0
+terminal_interval=10
+history_interval=1
 
-write_profiles_flag=.true.
-profile_interval=100.0
+write_profiles_flag=.false.
+profile_interval=100
 profile_data_prefix='08Msun_ExpOv_'
 profile_data_suffix='.profile'
 
@@ -116,6 +116,6 @@ star_history_name='08Msun_ExpOv.history'
 &pgstar
 
 read_extra_pgstar_inlist1 = .true.
-extra_pgstar_inlist1_name = 'pgstar/inlist_exp_ov' ! 'pgstar/inlist_pgstar_post_MS'
+extra_pgstar_inlist1_name = 'pgstar/inlist_pgstar_exp_ov' ! 'pgstar/inlist_pgstar_post_MS'
 
 / ! end of pgstar namelist

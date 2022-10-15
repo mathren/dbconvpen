@@ -1,17 +1,15 @@
-! inlist to evolve a 08 solar mass star
-
 &star_job
 
 pgstar_flag = .true.
 
 ! save a model at the end of the run
 save_model_when_terminate = .true.
-save_model_filename = '08Msun_pen_at_TAMS_large_net.mod'
+save_model_filename = '15Msun_pen_at_TAMS_large_net.mod'
 
 change_net = .true.
 change_initial_net = .true.
 ! will be changed on the fly post C depletion
-new_net_name = 'mesa_45.net' ! 'cno_extras_o18_to_mg26_plus_fe56.net'
+new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
 show_net_species_info = .false.
 
 initial_zfracs = 8
@@ -107,7 +105,7 @@ do_history_file = .true.
 history_interval = 1
 star_history_name = '08Msun_DBCP.history'
 
-write_profiles_flag = .true.
+write_profiles_flag = .false.
 profile_interval = 100
 profile_data_prefix = '08Msun_DBCP_'
 profile_data_suffix = '.profile'
@@ -127,6 +125,8 @@ x_logical_ctrl(1) = .true.
 ! stop at onset of core-collapse and switch to large network on the fly?
 ! not that this will overwrite the x_logical_ctrl(1
 x_logical_ctrl(2) = .false.
+
+default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
 
 / ! end of controls namelist
 
