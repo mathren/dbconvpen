@@ -51,6 +51,15 @@ overshoot_bdy_loc(1)='top'
 overshoot_f0(1)=0.005
 overshoot_f(1)=0.02
 
+! add superadiabatic reduction for massive stars
+use_superad_reduction = .true.
+superad_reduction_Gamma_limit = 0.5d0
+superad_reduction_Gamma_limit_scale = 5d0
+superad_reduction_Gamma_inv_scale = 5d0
+superad_reduction_diff_grads_limit = 1d-3
+
+
+
 ! Atmosphere
 
 atm_t_tau_opacity='iterated'
