@@ -3,71 +3,8 @@ import paths
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import sys
+from MESAreader import read_MESA_header, GetSrcCol
 
-
-def getSrcCol(f, clean=True, convert=True, bin_fname=None):
-    """
-    Read MESA output (history or profiles) and optionally
-    save a copy in binary format for faster access later.
-
-    Parameters:
-    ----------
-    clean:   `bool` if True use log_scrubber to remove retry steps before converting to binary
-              and parsing the output.
-    convert: `bool`, if True the file f is saved to
-              binary format for faster reading in the future.
-    bin_fname:   `str` name of the binary file if needed
-
-    Returns:
-    --------
-    src: `np.array`, shape (number of timesteps,
-          number of columns), the data
-    col: `list`, column names from the header
-    """
-    # print(f)
-    # TODO: maybe one day I'll update this to be a pandas dataframe
-    # should work both for history and profiles
-    # read header
-    with open(f, "r") as P:
-        for i, line in enumerate(P):
-            if i == 5:
-                col = line.split()
-                break
-    # check if binary exists
-    if bin_fname == None:
-        bin_fname = str(str(f)[:-4]) + ".npy"
-    if os.path.isfile(bin_fname):
-        # read the column and binary
-        src = reader(f, len(col), 6, bin_fname)
-    else:  # binary file does not exist
-        print("... Binary file does not yet exist")
-        if ("history.data" in str(f)) and clean:
-            scrub(f)
-        if convert:
-            src = reader(f, len(col), 6, bin_fname)
-        else:
-            src = np.genfromtxt(f, skip_header=6)
-    return src, col
-
-
-def read_MESA_header(fname):
-    """reader for the header of MESA profile or history files.
-    Parameters:
-    ----------
-    fname : `string`, path to the file to open
-    Returns:
-    --------
-    src : `list` values, some cannot be converted to float
-    col : `list`, columns names
-    """
-    with open(fname, "r") as f:
-        for i, line in enumerate(f):
-            if i == 1:
-                col = line.split()
-            if i == 2:
-                src = line.split()
-                break
-    return src, col
 
 
 def get_age_from_profile(pfile):
