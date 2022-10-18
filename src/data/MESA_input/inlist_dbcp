@@ -2,6 +2,10 @@
 
 pgstar_flag = .true.
 
+!! load C depl model
+! load_saved_model = .true.
+! load_model_filename = "C_depl.mod"
+
 ! save a model at the end of the run
 save_model_when_terminate = .true.
 save_model_filename = '15Msun_pen_at_TAMS_large_net.mod'
@@ -9,7 +13,7 @@ save_model_filename = '15Msun_pen_at_TAMS_large_net.mod'
 change_net = .true.
 change_initial_net = .true.
 ! will be changed on the fly post C depletion
-new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
+new_net_name =   'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
 show_net_species_info = .false.
 
 initial_zfracs = 8
@@ -39,8 +43,12 @@ cubic_interpolation_in_Z = .true.
 
 &controls
 
-initial_mass = 8. ! in Msun units
-initial_z = 0.02
+! report_solver_dt_info = .false.
+! solver_show_correction_info = .true.
+report_solver_progress = .false.
+
+initial_mass = 15.0d0 ! in Msun units
+initial_z = 0.02d0
 !initial_y = 0.276
 
 ! Mixing
@@ -49,11 +57,11 @@ use_Ledoux_criterion = .false.
 MLT_option = 'Cox'
 mixing_length_alpha = 1.8d0
 
-do_conv_premix = .true.
-predictive_mix(1) = .false.
-predictive_zone_type(1) = 'any'
-predictive_zone_loc(1) = 'core'
-predictive_bdy_loc(1) = 'top'
+! do_conv_premix = .true.
+! predictive_mix(1) = .false.
+! predictive_zone_type(1) = 'any'
+! predictive_zone_loc(1) = 'core'
+! predictive_bdy_loc(1) = 'top'
 
 ! Overshooting
 overshoot_scheme(1) = 'other'
@@ -72,13 +80,23 @@ superad_reduction_Gamma_limit_scale = 5d0
 superad_reduction_Gamma_inv_scale = 5d0
 superad_reduction_diff_grads_limit = 1d-3
 
+! Atmosphere & Outer boundary conditions
 
+! atm_option = 'T_tau'
+! atm_T_tau_relation = 'Krishna_Swamy'
+! atm_T_tau_opacity = 'iterated'
 
-! Atmosphere
+! Fixing the position of the Lagrangian region of the mesh helps
+! convergence near the Eddington limit
 
-atm_option = 'T_tau'
-atm_T_tau_relation = 'Krishna_Swamy'
-atm_T_tau_opacity = 'iterated'
+max_logT_for_k_below_const_q = 100
+max_q_for_k_below_const_q = 0.99
+min_q_for_k_below_const_q = 0.99
+max_logT_for_k_const_mass = 100
+max_q_for_k_const_mass = 0.98
+min_q_for_k_const_mass = 0.98
+fix_eps_grav_transition_to_grid = .true.
+
 
 ! Wind
 
@@ -90,12 +108,13 @@ Dutch_scaling_factor = 0.8d0
 ! Solver
 
 energy_eqn_option = 'dedt'
+! will be changed post C-dpel
 use_gold_tolerances = .true.
 
 ! Resolution
 
 max_allowed_nz = 10000000
-mesh_delta_coeff = 0.4
+mesh_delta_coeff = 0.3
 
 varcontrol_target = 1d-4
 min_allowed_varcontrol_target = 1d-5
@@ -106,17 +125,31 @@ threshold_for_smooth_gradL_composition_term = 0.02
 num_cells_for_smooth_brunt_B = 10
 threshold_for_smooth_brunt_B = 0.1
 
+! for late nuclear burning
+dX_nuc_drop_limit = 5d-2
+dX_nuc_drop_limit_at_high_T = 1d-2 ! for center logT > 9.45
+delta_Ye_highT_limit = 1d-3
+dX_nuc_drop_max_A_limit = 52
+dX_nuc_drop_min_X_limit = 1d-4
+dX_nuc_drop_hard_limit = 1d99
+delta_lgTeff_limit = 1d0
+delta_lgL_He_limit = -1d0
+lgL_nuc_burn_min = 4d0
+delta_lgRho_cntr_limit = 2.5d-3
+delta_lgRho_cntr_hard_limit = 1d-2
+delta_lgT_cntr_limit = 2.5d-3
+delta_lgT_cntr_hard_limit = 1d-2
 
 ! Output
 
-terminal_interval = 10
+terminal_interval = 1
 do_history_file = .true.
 history_interval = 1
-star_history_name = '08Msun_DBCP.history'
+star_history_name = '15Msun_DBCP.history'
 
-write_profiles_flag = .false.
-profile_interval = 100
-profile_data_prefix = '08Msun_DBCP_'
+write_profiles_flag = .true.
+profile_interval = 50000
+profile_data_prefix = '15Msun_DBCP_'
 profile_data_suffix = '.profile'
 
 write_pulse_data_with_profile = .true.
@@ -127,13 +160,12 @@ keep_surface_point_for_pulse_data = .true.
 interpolate_rho_for_pulse_data = .true.
 
 ! When to stop
-
 stop_near_zams = .false.
 ! stop at C depletion
-x_logical_ctrl(1) = .true.
+x_logical_ctrl(1) = .false.
 ! stop at onset of core-collapse and switch to large network on the fly?
-! not that this will overwrite the x_logical_ctrl(1
-x_logical_ctrl(2) = .false.
+! not that this will overwrite the x_logical_ctrl(1)
+x_logical_ctrl(2) = .true.
 
 default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
 
@@ -143,6 +175,6 @@ default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
 &pgstar
 
 read_extra_pgstar_inlist1 = .true.
-extra_pgstar_inlist1_name = 'pgstar/inlist_pgstar_dbcp' ! 'pgstar/inlist_pgstar_post_MS'
+extra_pgstar_inlist1_name = 'pgstar/inlist_pgstar_post_MS' ! 'pgstar/inlist_pgstar_dbcp'
 
 / ! end of pgstar namelist

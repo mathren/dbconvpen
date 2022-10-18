@@ -264,7 +264,7 @@
 
       pp
       cno
-      tri_alfa
+      !tri_alfa
       !c_alpha
       !n_alpha
       !o_alpha
@@ -339,7 +339,7 @@
          ! since we start at the center, the bottom of the 1st region is q=0 and top of last is q=1.
 
          ! the columns in the log file will have names like 'burn_type_1' and 'burn_qtop_1'
-         
+
       !burn_relr_regions <integer>
          ! same as above, but locations given as r/rstar instead of m/mstar.
          ! the columns in the log file will have names like 'burn_relr_type_1' and 'burn_relr_top_1'
@@ -536,9 +536,9 @@
       ! gravity darkening in rotating stars. Based on the model of Espinosa Lara & Rieutord (2011)
       ! 'polar' refers to the line of sight being directed along the rotation axis of the star
       ! 'equatorial' refers to the line of sight coincident with the stellar equator
-      !grav_dark_L_polar !Lsun 
+      !grav_dark_L_polar !Lsun
       !grav_dark_Teff_polar !K
-      !grav_dark_L_equatorial !Lsun 
+      !grav_dark_L_equatorial !Lsun
       !grav_dark_Teff_equatorial !K
 
       !surf_escape_v ! cm/s
@@ -684,7 +684,7 @@
 !----------------------------------------------------------------------------------------------
 
 !# info at specific locations
-      
+
    !## info at location of max temperature
    !max_T
    !log_max_T
@@ -989,7 +989,7 @@
    !rsp_DeltaR ! R_max - R_min difference in the max and min radius (Rsun)
    !rsp_GREKM ! fractional growth of the kinetic energy per pulsation period ("nonlinear growth rate") - see equation 5 in MESA5
    !rsp_num_periods ! Count of the number of pulsation cycles completed
-   !rsp_period_in_days ! Running period, ie., period between two consecutive values of R_max (days) 
+   !rsp_period_in_days ! Running period, ie., period between two consecutive values of R_max (days)
    !rsp_phase ! Running pulsation phase for a cycle
 
 !----------------------------------------------------------------------------------------------
