@@ -24,7 +24,6 @@ import sys
 import glob
 import time
 import math
-import subprocess
 
 # import re
 # for log_scrubber
@@ -38,18 +37,13 @@ except ModuleNotFoundError:
     # print("no pretty colors, install termcolor for that")
     def colored(string, color):
         print(string)
-
-
-try:
-    import socket
-except ModuleNotFoundError:
-    # print(colored("Failed loading MESA plot, I'll continue anyways","red"))
-    pass
 try:
     import pyMesaUtils as pym
 except ModuleNotFoundError:
     # print("pyMESA not found, install from https://github.com/rjfarmer/pyMesa")
     pass
+
+
 
 # constants -------------------------------------------------------------------------------
 global secyer, G_cgs, Lsun, Msun, Rsun_cm, clight
