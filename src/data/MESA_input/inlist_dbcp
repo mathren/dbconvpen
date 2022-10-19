@@ -57,6 +57,9 @@ use_Ledoux_criterion = .false.
 MLT_option = 'Cox'
 mixing_length_alpha = 1.8d0
 
+use_other_adjust_mlt_gradT_fraction = .true.
+
+
 ! do_conv_premix = .true.
 ! predictive_mix(1) = .false.
 ! predictive_zone_type(1) = 'any'

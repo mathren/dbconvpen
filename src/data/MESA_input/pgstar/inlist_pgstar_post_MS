@@ -216,14 +216,14 @@ Profile_Panels1_other_ymargin(2) = 0.1 ! 10
 Profile_Panels1_other_dymin(2) = 0.5
 
 
-Profile_Panels1_yaxis_name(3) = 'logR_cm'
+Profile_Panels1_yaxis_name(3) = 'non_nuc_neu'
 Profile_Panels1_ymax(3) = -101d0
 Profile_Panels1_ymin(3) = 7
 Profile_Panels1_dymin(3) = 0.1
 
-Profile_Panels1_other_yaxis_name(3) = 'mu' ! 'v_div_v_escape' ! 'mass'
-Profile_Panels1_other_ymax(3) = 1.5d0
-Profile_Panels1_other_ymin(3) = 0.5d0
+Profile_Panels1_other_yaxis_name(3) = 'eps_nuc_minus_non_nuc_neu' ! 'v_div_v_escape' ! 'mass'
+Profile_Panels1_other_ymax(3) = -101d0
+Profile_Panels1_other_ymin(3) = -101d0
 Profile_Panels1_other_dymin(3) = 0.15
 
 show_TRho_Profile_kap_regions = .false.
@@ -297,6 +297,7 @@ Profile_Panels2_xaxis_name = 'mass'
 Profile_Panels2_xaxis_reversed = .false.
 Profile_Panels2_xmin = -101d0
 Profile_Panels2_xmax = -101d0
+
 Profile_Panels2_xmargin = 0d0
 Profile_Panels2_show_mix_regions_on_xaxis = .false.
 
@@ -308,12 +309,20 @@ Profile_Panels2_yaxis_name(2) = 'gradT_sub_grada'
 Profile_Panels2_other_yaxis_name(2) = 'logL'
 Profile_Panels2_yaxis_name(3) = 'conv_L_div_L'
 Profile_Panels2_other_yaxis_name(3) = 'eps_nuc'
-Profile_Panels2_yaxis_name(4) = 'brunt_N2'
-Profile_Panels2_other_yaxis_name(4) = 'brunt_B'
+Profile_Panels2_yaxis_name(4) = 'log_Peclet_number'
+Profile_Panels2_other_yaxis_name(4) = 'f_adjust_MLT'
 Profile_Panels2_yaxis_name(5) = 'log_D_mix'
 Profile_Panels2_other_yaxis_name(5) = 'log_D_conv'
 Profile_Panels2_ymin(5) = -1
 Profile_Panels2_other_ymin(5) = -1
+
+Profile_Panels2_ymin(4) = -5d0
+Profile_Panels2_ymax(4) = 7d0
+Profile_Panels2_xmin = 0d0
+Profile_Panels2_xmax = 5d0
+
+Profile_Panels2_show_grid = .true.
+
 
 
 Profile_Panels2_file_dir = 'png/'

@@ -97,6 +97,12 @@
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
+
+          if (.not. restart) then
+             ! flag for post C depletion
+             s% lxtra(1) = .false.
+          end if
+
       end subroutine extras_startup
 
 
@@ -127,7 +133,7 @@
           ! Flag PZ as anonymous_mixing
           if (doing_DBP) then
             do k=k_PZ_bottom, k_PZ_top, -1
-                s%mixing_type(k) = anonymous_mixing
+                s%mixing_type(k) = 12
             end do
           endif
 
@@ -202,14 +208,14 @@
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
-          how_many_extra_profile_columns = 0
+          how_many_extra_profile_columns = 2
       end function how_many_extra_profile_columns
 
 
       subroutine data_for_extra_profile_columns(id, n, nz, names, vals, ierr)
           integer, intent(in) :: id, n, nz
           character (len=maxlen_profile_column_name) :: names(n)
-          real(dp) :: vals(nz,n)
+          real(dp) :: vals(nz,n), diffusivity, Peclet_number, fraction
           integer, intent(out) :: ierr
           ! integer :: vals_nr
           type (star_info), pointer :: s
@@ -217,6 +223,25 @@
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
+
+          names(1) = "log_Peclet_number"
+          names(2) = "f_adjust_MLT"
+          do k= s%nz, 1, -1
+              diffusivity = 16.0_dp * boltz_sigma * pow3(s% T(k)) / ( 3.0_dp * s% opacity(k) * pow2(s% rho(k)) * s% cp(k) )
+              Peclet_number = s% conv_vel(k) * s% scale_height(k) * s% mixing_length_alpha / diffusivity
+              vals(k, 1) = safe_log10(Peclet_number)
+
+              if (Peclet_number >= 100.0_dp) then
+                  fraction = 1.0_dp
+              else if (Peclet_number .le. 0.01_dp) then
+                  fraction = 0.0_dp
+              else
+                  fraction = (safe_log10(Peclet_number)+2.0_dp)/4.0_dp
+              end if
+
+              vals(k, 2) = fraction
+          end do
+
 
       end subroutine data_for_extra_profile_columns
 
@@ -294,6 +319,7 @@
           if (s% x_logical_ctrl(1) .eqv. .true.) then
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
                 write(*,*) "Reached Carbon depletion"
+                s% lxtra(1) = .true.
                 extras_finish_step = terminate
                 write(fname, fmt="(a10)") 'C_depl.mod'
                 call star_write_model(s% id, fname, ierr)
@@ -305,18 +331,54 @@
              s% x_logical_ctrl(1) = .false.
              ! change net on the fly post C depletion
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
+                write(*,*) "Reached Carbon depletion"
+                ! flip switch so we don't enter here again
+                s% x_logical_ctrl(2) = .false.
+                s% lxtra(1) = .true.
                 write(fname, fmt="(a10)") 'C_depl.mod'
                 call star_write_model(s% id, fname, ierr)
                 s% job% change_net = .true.
                 s% job% change_initial_net = .true.
-                s% job% adjust_abundances_for_new_isos = .true.
-                s% job% new_net_name = "mesa_128.net"
+                s% job% adjust_abundances_for_new_isos = .false.
+                s% job% new_net_name = "approx21.net" ! "mesa_128.net"
                 write(*,*) "Change net to ", s% job%new_net_name
-                ! flip switch so we don't enter here again
-                s% x_logical_ctrl(2) = .false.
+                s% op_split_burn = .true.
+                write(*,*) "Split burning and evolution", s% op_split_burn
+                ! decrease proposed timestep
+                s% dt_next = s% dt_next/10.0d0 ! sec
+                ! change minimum timestep allowed
+                s% min_timestep_limit = 1d-10 ! sec
+                ! reduce resolution requirements
+                write(*,*) "Changing resolution"
+                ! ---------------------------------------------------------------
+                s% mesh_delta_coeff = 0.5d0
+                s% mesh_delta_coeff_for_highT = 0.75d0
+                s% varcontrol_target = 5d-3
+                ! s% delta_lgRho_cntr_limit = 0.0025d0
+                ! s% delta_lgRho_cntr_hard_limit = 0.005d0
+                ! write(*, *) "Read inlist_xtra_coeff_mesh", .not. s% lxtra(1), "onwards"
+                ! write(*,*) "network pleasing"
+                ! s% gold_tol_residual_norm1 = 1d-11
+                ! s% gold_tol_max_residual1 = 2d-9
+                ! s% gold_iter_for_resid_tol2 = 5
+                ! s% gold_tol_residual_norm2 = 2d-8
+                ! s% gold_tol_max_residual2 = 2d-5
+                ! s% gold_iter_for_resid_tol3 = 10
+                ! s% gold_tol_residual_norm3 = 1d-3
+                ! s% gold_tol_max_residual3 = 1d-4
+                ! s% gold2_solver_iters_timestep_limit = 25
+                ! ---------------------------------------------------------------
              end if
           end if
 
+          ! check dt is at least smaller than the global KH timescale
+          ! if ((s% dt_next/secyer >= s% kh_timescale) .and. &
+          !      ! do not apply after C depl
+          !     (.not. ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. &
+          !     (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)))) then
+          !    s% dt_next = 0.98d0* s% kh_timescale*secyer
+          !    write(*,*) "change log_dt (yr)", log10(s% dt_next/secyer), "log_t_kh (yr)", log10(s% kh_timescale)
+          ! end if
 
           if (extras_finish_step == terminate) s% termination_code = t_extras_finish_step
 
@@ -582,6 +644,7 @@
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
 
+          if (s%xa(s%net_iso(ih1), s%nz) <= 1d-4) return
           if (xtra_coeff_mesh == 1d0 .or. xtra_coeff_mesh < 0) return
           if (s% mixing_type(s% nz) /= convective_mixing) return  ! only enable for convective cores
 
@@ -639,7 +702,7 @@
       subroutine read_inlist_xtra_coeff_core_boundary(ierr)
           use utils_lib
           integer, intent(out) :: ierr
-          character (len=256) :: filename, message
+          character (len=256) :: filename
           integer :: unit
 
           filename = 'inlist_xtra_coeff_mesh'
