@@ -197,7 +197,6 @@
           vals(6) = rho_core_top
           vals(7) = r_cb/Rsun
 
-
       end subroutine data_for_extra_history_columns
 
 
@@ -402,7 +401,7 @@
           type(star_info), pointer :: s
           real(dp) :: fraction, Peclet_number, diffusivity    ! f is fraction to compose grad_T = f*grad_ad + (1-f)*grad_rad
           integer :: k
-          logical, parameter :: DEBUG = .FALSE.
+          logical, parameter :: DEBUG = .false.
 
           ierr = 0
           call star_ptr(id, s, ierr)
@@ -477,7 +476,8 @@
 
           call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
           ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
-          alpha_PZ = alpha_PZ + s%overshoot_f0(j)
+          print *,  "afer dissipation", "alpha_PZ", alpha_PZ,  "ov", s%overshoot_f0(j)
+          alpha_PZ  = alpha_PZ + s%overshoot_f0(j)
           ! Extract parameters
           f = alpha_PZ                     ! extend of step function (a_ov)
           f0 = s%overshoot_f0(j)
@@ -489,6 +489,7 @@
           if (f < 0.0_dp .OR. f0 <= 0.0_dp .OR. f2 < 0.0_dp) then
               write(*,*) 'ERROR: for extended convective penetration, must set f0 > 0, and f and f2 >= 0'
               write(*,*) 'see description of overshooting in star/defaults/control.defaults'
+              write(*,*) 'f', f, 'f0', f0, 'f2', f2
               ierr = -1
               return
           end if
@@ -611,7 +612,7 @@
          dr = s%r(k) - r_cb
          Lint = Lint + (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
 
-         do j=k-1,1,-1
+         do j=k,1,-1
             dr = s%dm(j) / (4d0 * pi * pow2(s%r(j)) * s%rho(j))
             dLint = (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
 
@@ -620,6 +621,11 @@
 
                mass_PZ = s%m(j) - m_core !used for history output
                delta_r_PZ = s%r(j-1)+dr - r_cb
+               ! print *, "pressure scale height", h
+               ! print *, "delta_r_PZ", delta_r_PZ
+               ! print *, "r_cb", r_cb
+               ! print *, "dr", dr
+               ! print *, "r(j)", s%r(j-1), j, k
                alpha_PZ = delta_r_PZ / h
                k_PZ_top = j
                exit
