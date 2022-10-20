@@ -610,7 +610,18 @@
          ! Integrate over RZ until we find the edge of the PZ
          ! remainder of cell k (non-convective part)
          dr = s%r(k) - r_cb
-         Lint = Lint + (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
+         dLint = (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
+         Lint = dLint
+
+         if (Lint > RHS) then
+            dr = dr*(RHS - Lint)/dLint
+
+            mass_PZ =  s%rho(k) * 4d0/3d0 * pi * (pow3(r_cb+dr) - pow3(r_cb)) !s%m(k) - m_core !used for history output
+            delta_r_PZ = dr
+            alpha_PZ = delta_r_PZ / h
+            k_PZ_top = k
+            return
+         end if
 
          do j=k,1,-1
             dr = s%dm(j) / (4d0 * pi * pow2(s%r(j)) * s%rho(j))
@@ -628,7 +639,7 @@
                ! print *, "r(j)", s%r(j-1), j, k
                alpha_PZ = delta_r_PZ / h
                k_PZ_top = j
-               exit
+               return
             end if
             Lint = Lint + dLint
          end do
