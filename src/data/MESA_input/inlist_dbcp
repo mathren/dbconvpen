@@ -13,7 +13,7 @@ save_model_filename = '15Msun_pen_at_TAMS_large_net.mod'
 change_net = .true.
 change_initial_net = .true.
 ! will be changed on the fly post C depletion
-new_net_name =   'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
+new_net_name =   'cno_extras_o18_to_mg26_plus_fe56.net' !'mesa_45.net' !
 show_net_species_info = .false.
 
 initial_zfracs = 8
@@ -56,9 +56,6 @@ initial_z = 0.02d0
 use_Ledoux_criterion = .false.
 MLT_option = 'Cox'
 mixing_length_alpha = 1.8d0
-
-use_other_adjust_mlt_gradT_fraction = .true.
-
 
 ! do_conv_premix = .true.
 ! predictive_mix(1) = .false.
@@ -139,9 +136,9 @@ delta_lgTeff_limit = 1d0
 delta_lgL_He_limit = -1d0
 lgL_nuc_burn_min = 4d0
 delta_lgRho_cntr_limit = 2.5d-3
-delta_lgRho_cntr_hard_limit = 1d-2
+delta_lgRho_cntr_hard_limit = -1d0 !5d-3
 delta_lgT_cntr_limit = 2.5d-3
-delta_lgT_cntr_hard_limit = 1d-2
+delta_lgT_cntr_hard_limit = 5d-3
 
 ! Output
 
@@ -151,7 +148,7 @@ history_interval = 1
 star_history_name = '15Msun_DBCP.history'
 
 write_profiles_flag = .true.
-profile_interval = 50000
+profile_interval = 50
 profile_data_prefix = '15Msun_DBCP_'
 profile_data_suffix = '.profile'
 

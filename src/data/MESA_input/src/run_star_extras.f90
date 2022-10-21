@@ -476,7 +476,7 @@
 
           call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
           ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
-          print *,  "afer dissipation", "alpha_PZ", alpha_PZ,  "ov", s%overshoot_f0(j)
+          print *,  "after dissipation ", "alpha_PZ", alpha_PZ
           alpha_PZ  = alpha_PZ + s%overshoot_f0(j)
           ! Extract parameters
           f = alpha_PZ                     ! extend of step function (a_ov)
@@ -610,18 +610,7 @@
          ! Integrate over RZ until we find the edge of the PZ
          ! remainder of cell k (non-convective part)
          dr = s%r(k) - r_cb
-         dLint = (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
-         Lint = dLint
-
-         if (Lint > RHS) then
-            dr = dr*(RHS - Lint)/dLint
-
-            mass_PZ =  s%rho(k) * 4d0/3d0 * pi * (pow3(r_cb+dr) - pow3(r_cb)) !s%m(k) - m_core !used for history output
-            delta_r_PZ = dr
-            alpha_PZ = delta_r_PZ / h
-            k_PZ_top = k
-            return
-         end if
+         Lint = Lint + (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
 
          do j=k,1,-1
             dr = s%dm(j) / (4d0 * pi * pow2(s%r(j)) * s%rho(j))
@@ -632,14 +621,14 @@
 
                mass_PZ = s%m(j) - m_core !used for history output
                delta_r_PZ = s%r(j-1)+dr - r_cb
-               ! print *, "pressure scale height", h
-               ! print *, "delta_r_PZ", delta_r_PZ
-               ! print *, "r_cb", r_cb
-               ! print *, "dr", dr
-               ! print *, "r(j)", s%r(j-1), j, k
+               print *, "pressure scale height", h
+               print *, "delta_r_PZ", delta_r_PZ
+               print *, "r_cb", r_cb
+               print *, "dr", dr
+               print *, "r(j)", s%r(j-1), j, k
                alpha_PZ = delta_r_PZ / h
                k_PZ_top = j
-               return
+               exit
             end if
             Lint = Lint + dLint
          end do
