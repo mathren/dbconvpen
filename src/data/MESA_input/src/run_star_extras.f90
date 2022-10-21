@@ -167,6 +167,7 @@
           character (len=maxlen_history_column_name) :: names(n)
           real(dp) :: vals(n)
           real(dp) :: r_cb
+          integer :: k
           integer, intent(out) :: ierr
           type (star_info), pointer :: s
           ierr = 0
@@ -184,7 +185,6 @@
               r_core = r_cb
               m_core = s%m(k)
               rho_core_top = s%rho(k)
-              h = s%scale_height(k)
           endif
 
           names(1) = 'm_core'
@@ -202,7 +202,6 @@
           vals(5) = r_core/Rsun
           vals(6) = rho_core_top
           vals(7) = r_cb/Rsun
-
 
       end subroutine data_for_extra_history_columns
 
