@@ -181,10 +181,16 @@
               delta_r_PZ=0
               alpha_PZ=0
 
-              call star_eval_conv_bdy_k(s, 1, k, ierr)
-              r_core = r_cb
-              m_core = s%m(k)
-              rho_core_top = s%rho(k)
+              if (s% mixing_type(s% nz) /= convective_mixing) then
+                  r_core = 0
+                  m_core = 0
+                  rho_core_top = 0
+              else
+                  call star_eval_conv_bdy_k(s, 1, k, ierr)
+                  r_core = r_cb
+                  m_core = s%m(k)
+                  rho_core_top = s%rho(k)
+              endif
           endif
 
           names(1) = 'm_core'
@@ -562,7 +568,7 @@
          Lint = dLint
 
          if (Lint > RHS) then
-            dr = dr*(RHS - Lint)/dLint
+            dr = dr*(Lint - RHS)/dLint
 
             mass_PZ =  s%rho(k) * 4d0/3d0 * pi * (pow3(r_cb+dr) - pow3(r_cb)) !s%m(k) - m_core !used for history output
             delta_r_PZ = dr
