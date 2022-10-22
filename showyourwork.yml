@@ -2,9 +2,11 @@ version: 0.3.1.post1
 
 overleaf:
   id: 6348299a3498506108f5c309
-  push: 
+  push:
     - src/tex/figures
     - src/tex/output
   pull:
     - src/tex/ms.tex
     - src/tex/bib.bib
+
+verbose: True
