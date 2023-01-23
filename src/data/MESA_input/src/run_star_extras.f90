@@ -97,6 +97,9 @@
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
+
+
+          print * "TEST GIT COMMIT"
       end subroutine extras_startup
 
 
