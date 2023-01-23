@@ -1,4 +1,4 @@
 # Nothing in this folder should be tracked by git
 *
 !.gitignore
-!./MESA_input/src/run_star_extras.f90
+!MESA_input/src/run_star_extras.f90
