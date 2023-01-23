@@ -31,8 +31,10 @@
       implicit none
 
       real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top
+      real (dp) :: X_ini
       integer :: k_PZ_top, k_PZ_bottom
       logical :: doing_DBP = .false.
+      logical :: on_preMS = .false.
 
       !extra meshing controls
        real(dp) :: xtra_dist_below, xtra_dist_above_ov, xtra_dist_above_bv, xtra_coeff_mesh
@@ -73,7 +75,7 @@
           s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
           s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
 
-          s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
+          ! s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
           s% other_overshooting_scheme => extended_convective_penetration
 
           ! Add extra meshing
@@ -98,8 +100,11 @@
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
 
+          X_ini=s% center_h1
+          if (s%job% create_pre_main_sequence_model) then
+              on_preMS = .true.
+          endif
 
-          print * "TEST GIT COMMIT"
       end subroutine extras_startup
 
 
@@ -135,19 +140,16 @@
           endif
 
           do_retry = .false.
-          ! Terminate and save the pre-main sequence model when the convective core appears.
+          ! Only change gradT when no longer on pre-main sequence and a convective core has appeared.
           ! The central hydrogen fraction needs to have decreased by a small amount,
           ! to make sure that core H-burning has started, and the star is near the ZAMS.
-          ! If the model is not on the pre-main sequence, check if it needs to be saved,
-          ! or if a retry needs to be made to save within precision at a desired Xc value.
-          ! if (s%job% create_pre_main_sequence_model) then
-          !     if ((s%mixing_type(s%nz) .eq. convective_mixing) .and. (X_ini-s% center_h1 > 1d-6)) then
-          !         extras_check_model = terminate
-          !     endif
-          ! else
-          !     call save_at_Xc(id, Xc_save, Xc_precision, Xc_save_step, need_to_save, do_retry, ierr)
-          !     if (do_retry) extras_check_model = retry
-          ! endif
+          if (s%job% create_pre_main_sequence_model .and. on_preMS) then
+              if ((s%mixing_type(s%nz) .eq. convective_mixing) .and. (X_ini-s% center_h1 > 1d-6)) then
+                  ! extras_check_model = terminate
+                  s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
+                  on_preMS = .false.
+              endif
+          endif
 
           ! by default, indicate where (in the code) MESA terminated
           if (extras_check_model == terminate) s% termination_code = t_extras_check_model
@@ -313,7 +315,7 @@
           ! stop at carbon depletion
           if (s% x_logical_ctrl(1) .eqv. .true.) then
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
-                write(*,*) "Reached Carbon depletion"
+                write(*,*) "Carbon depletion"
                 extras_finish_step = terminate
                 write(fname, fmt="(a10)") 'C_depl.mod'
                 call star_write_model(s% id, fname, ierr)
@@ -321,7 +323,7 @@
           end if
           ! stop at onset of core-collapse
           if (s% x_logical_ctrl(2) .eqv. .true.) then
-             ! then don't stop at C depletion
+             ! don't stop at O depletion
              s% x_logical_ctrl(1) = .false.
              ! change net on the fly post C depletion
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
@@ -329,7 +331,6 @@
                 call star_write_model(s% id, fname, ierr)
                 s% job% change_net = .true.
                 s% job% change_initial_net = .true.
-                s% job% adjust_abundances_for_new_isos = .true.
                 s% job% new_net_name = "mesa_128.net"
                 write(*,*) "Change net to ", s% job%new_net_name
                 ! flip switch so we don't enter here again
