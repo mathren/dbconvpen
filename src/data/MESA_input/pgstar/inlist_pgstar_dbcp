@@ -38,6 +38,11 @@ Profile_Panels1_show_mix_regions_on_xaxis = .false.
 Profile_Panels1_num_panels = 5
 Profile_Panels1_yaxis_name(1) = 'grada' ! 'gradr'
 Profile_Panels1_other_yaxis_name(1) = 'gradr'
+Profile_Panels1_ymin(1) = 0.2
+Profile_Panels1_other_ymin(1) = 0.2
+Profile_Panels1_ymax(1) = 0.5
+Profile_Panels1_other_ymax(1) = 0.5
+
 Profile_Panels1_yaxis_name(2) = 'gradL'
 Profile_Panels1_other_yaxis_name(2) = 'logS'
 Profile_Panels1_yaxis_name(3) = 'x'
@@ -48,7 +53,6 @@ Profile_Panels1_yaxis_name(5) = 'log_D_mix'
 Profile_Panels1_other_yaxis_name(5) = 'log_D_conv'
 Profile_Panels1_ymin(5) = -1
 Profile_Panels1_other_ymin(5) = -1
-
 
 Profile_Panels1_file_dir = 'png/'
 Profile_Panels1_file_prefix = 'ConvPen_'

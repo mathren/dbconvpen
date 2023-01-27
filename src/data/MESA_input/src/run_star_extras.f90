@@ -31,10 +31,9 @@
       implicit none
 
       real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top
-      real (dp) :: X_ini
+      ! real (dp) :: X_ini
       integer :: k_PZ_top, k_PZ_bottom
       logical :: doing_DBP = .false.
-      logical :: on_preMS = .false.
 
       !extra meshing controls
        real(dp) :: xtra_dist_below, xtra_dist_above_ov, xtra_dist_above_bv, xtra_coeff_mesh
@@ -84,7 +83,10 @@
           if (ierr /= 0) return
           s% other_mesh_delta_coeff_factor => mesh_delta_coeff_core_boundary
 
-
+          ! if (.not. s%job% create_pre_main_sequence_model) then
+            ! load_model_filename = 'ZAMS.mod'
+            ! load_saved_model = .true.
+          ! endif
           ! s% kap_rq% Zbase = Z_ini ! set Z for opacity tables
 
 
@@ -100,10 +102,12 @@
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
 
-          X_ini=s% center_h1
-          if (s%job% create_pre_main_sequence_model) then
-              on_preMS = .true.
-          endif
+          ! if (s%job% create_pre_main_sequence_model) then
+          !     X_ini=s% center_h1
+          !     s%job% save_model_when_terminate = .true.
+          !     s% scale_max_correction = 0.1       ! to help pre-MS convergence
+          !     s% job% save_model_filename = 'ZAMS.mod'
+          ! endif
 
       end subroutine extras_startup
 
@@ -140,16 +144,14 @@
           endif
 
           do_retry = .false.
-          ! Only change gradT when no longer on pre-main sequence and a convective core has appeared.
-          ! The central hydrogen fraction needs to have decreased by a small amount,
-          ! to make sure that core H-burning has started, and the star is near the ZAMS.
-          if (s%job% create_pre_main_sequence_model .and. on_preMS) then
-              if ((s%mixing_type(s%nz) .eq. convective_mixing) .and. (X_ini-s% center_h1 > 1d-6)) then
-                  ! extras_check_model = terminate
-                  s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
-                  on_preMS = .false.
-              endif
-          endif
+          ! ! Save model when no longer on pre-main sequence and a convective core has appeared.
+          ! ! The central hydrogen fraction needs to have decreased by a small amount,
+          ! ! to make sure that core H-burning has started, and the star is near the ZAMS.
+          ! if (s%job% create_pre_main_sequence_model) then
+          !     if ((s%mixing_type(s%nz) .eq. convective_mixing) .and. (X_ini-s% center_h1 > 1d-6)) then
+          !         extras_check_model = terminate
+          !     endif
+          ! endif
 
           ! by default, indicate where (in the code) MESA terminated
           if (extras_check_model == terminate) s% termination_code = t_extras_check_model
@@ -549,15 +551,28 @@
          rho_core_top = s%rho(k)
          h = s%scale_height(k)
 
+         ! prescription based on Jermyn A. et al (2022)  https://arxiv.org/pdf/2203.09525.pdf
+         ! Equation A1 is used here.
+         ! RHS refers to right-hand side of equation A1, and Lint the integrated
+         ! luminosity on either left or right side of that equation
+
          ! Integrate over cells that are fully in CZ
+         ! r and L_conv are face values, assume they change linear within cell
          do j=s%nz,k+1,-1
-             dr = s%dm(j) / (4d0 * pi * pow2(s%r(j)) * s%rho(j))
-             Lint = Lint + s%L_conv(j) * dr
+            if (j .eq. s%nz) then
+                dr = s%r(j)
+                Lint = Lint + s%L_conv(j)*0.5 * dr
+            else
+                dr = s%r(j) - s%r(j+1)
+                Lint = Lint + (s%L_conv(j+1) + s%L_conv(j))*0.5 * dr
+            endif
          end do
+
         ! Take cell that is partially convective
         ! convective part of cell k
+        ! L_conv goes to 0 at edge of conv zone
          dr = r_cb - s%r(k+1)
-         Lint = Lint + s%L_conv(k) * dr
+         Lint = Lint + s%L_conv(k+1)*0.5 * dr
 
          ! Calculate target RHS
          V_CZ = 4d0/3d0 * pi * r_cb*r_cb*r_cb
@@ -567,29 +582,30 @@
 
          ! Integrate over RZ until we find the edge of the PZ
          ! remainder of cell k (non-convective part)
+         ! Do integration explicitely, f*xi*4*pi*r^2 is moved outside of integral
          dr = s%r(k) - r_cb
-         dLint = (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
+         dLint = xi * f * 4d0 * pi * (pow3(s%r(k))-pow3(r_cb))/3 * Favg + (s%L(k)*0.5 * (s%grada_face(k) / s%gradr(k) - 1d0)) * dr
          Lint = dLint
 
+         ! If remainder of cell k would already satisfy Lint > RHS
          if (Lint > RHS) then
             dr = dr*(Lint - RHS)/dLint
-
-            mass_PZ =  s%rho(k) * 4d0/3d0 * pi * (pow3(r_cb+dr) - pow3(r_cb)) !s%m(k) - m_core !used for history output
+            mass_PZ =  s%rho(k) * 4d0/3d0 * pi * (pow3(r_cb+dr) - pow3(r_cb)) !s%m(k) - m_core !only used for history output
             delta_r_PZ = dr
             alpha_PZ = delta_r_PZ / h
             k_PZ_top = k
             return
          end if
-
+         ! Else calculate dL_int for each cell, untill the total integrated L > RHS
          do j=k-1,1,-1
-            dr = s%dm(j) / (4d0 * pi * pow2(s%r(j)) * s%rho(j))
-            dLint = (xi * f * 4d0 * pi * pow2(s%r(j)) * Favg + s%L(j) * (s%grada(j) / s%gradr(j) - 1d0)) * dr
+            dr = s%r(j) - s%r(j+1)
+            dLint = xi * f * 4d0 * pi * (pow3(s%r(j))-pow3(s%r(j+1)))/3 * Favg &
+            + ( (s%L(j+1)*(s%grada_face(j+1) / s%gradr(j+1) - 1d0) +(s%L(j)*(s%grada_face(j) / s%gradr(j) - 1d0)) )*0.5 * dr)
 
             if (Lint + dLint > RHS) then
                dr = dr*(RHS - Lint)/dLint
-
-               mass_PZ = s%m(j) - m_core !used for history output
-               delta_r_PZ = s%r(j-1)+dr - r_cb
+               mass_PZ = s%m(j) - m_core !only used for history output
+               delta_r_PZ = s%r(j+1)+dr - r_cb
                alpha_PZ = delta_r_PZ / h
                k_PZ_top = j
                return
