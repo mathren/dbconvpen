@@ -1,5 +1,5 @@
 name:
-  - dbconvpen
+  dbconvpen
 channels:
   - defaults
   - conda-forge
