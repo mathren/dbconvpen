@@ -6,6 +6,10 @@
     new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
     show_net_species_info = .false.
     initial_zfracs = 8
+
+    write_profile_when_terminate = .true.
+    filename_for_profile_when_terminate = FINAL_FILENAME
+
 / ! end of star_job namelist
 
 &eos

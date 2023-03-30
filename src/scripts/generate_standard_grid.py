@@ -48,6 +48,7 @@ for Zv in Z_values:
         replacements['INITIAL_MASS'] = '{:.1f}'.format(M)
         replacements['STAR_HISTORY_NAME'] = "'{}.history'".format(run_tag)
         replacements['MIN_D_MIX'] = '{}'.format(Dm)
+        replacements['FINAL_FILENAME'] = "'{}_Z{}_TAMS.profile'".format(run_tag, Z_str)
 
         for filename in ['clean', 'mk', 're', 'rn', 'stash.py', \
                 'history_columns.list', 'profile_columns.list', 'inlist_xtra_coeff_mesh']:
@@ -80,7 +81,7 @@ for Zv in Z_values:
             run_job = open(str(run_dir.joinpath('evan_pleiades_job_submit')), 'w')
             for line in template_job.readlines():
                 if "#PBS -N mesa_standard" in line:
-                    line = "#PBS -N mesa_standard_{}\n".format(run_tag)
+                    line = "#PBS -N mesa_{}_Z{}\n".format(run_tag, Z_str)
                 run_job.write(line)
             template_job.close()
             run_job.close()
