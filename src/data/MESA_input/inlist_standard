@@ -58,7 +58,7 @@
 ! Atmosphere
     atm_option = 'T_tau'
     atm_T_tau_relation = 'Eddington'
-    atm_T_tau_opacity = 'iterated'
+    atm_T_tau_opacity = 'varying'
 
 ! Wind
     hot_wind_scheme = 'Dutch'
