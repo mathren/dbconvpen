@@ -1,30 +1,16 @@
 &star_job
 
-pgstar_flag = .true.
-
-
+  pgstar_flag = .false.
   ! begin with a pre-main sequence model
     create_pre_main_sequence_model = .false.
-    load_saved_model = .true.
-    load_model_filename = '8Msun_pen_at_ZAMS.mod'
-
-    
-! save a model at the end of the run
-save_model_when_terminate = .true.
-save_model_filename = '8Msun_pen_at_TAMS.mod'
-
-
-!change_net = .true.
-!change_initial_net = .true.
 ! will be changed on the fly post C depletion
-new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
-show_net_species_info = .false.
+    new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
+    show_net_species_info = .false.
+    initial_zfracs = 8
 
-initial_zfracs = 8
-!change_initial_Z = .true.
-!change_initial_Y = .true.
-!new_Z = 0.0142
-!new_Y = 0.276
+    write_profile_when_terminate = .true.
+    filename_for_profile_when_terminate = FINAL_FILENAME
+
 
 / ! end of star_job namelist
 
@@ -35,26 +21,25 @@ initial_zfracs = 8
 
 &kap
 
-use_Type2_opacities = .true.
-Zbase = 0.02
-kap_file_prefix = 'OP_a09_nans_removed_by_hand'
+    use_Type2_opacities = .true.
+    Zbase = INITIAL_Z
+    kap_file_prefix = 'OP_a09_nans_removed_by_hand'
 
-cubic_interpolation_in_X = .true.
-cubic_interpolation_in_Z = .true.
+    cubic_interpolation_in_X = .true.
+    cubic_interpolation_in_Z = .true.
 
 / ! end of kap namelist
 
 
 &controls
 
-initial_mass = 8. ! in Msun units
-initial_z = 0.02
-!initial_y = 0.276
+    initial_mass = INITIAL_MASS ! in Msun units
+    initial_z = INITIAL_Z
 
 ! Mixing
 
-min_D_mix = 100
-set_min_D_mix = .true.
+    min_D_mix = MIN_D_MIX
+    set_min_D_mix = .true.
 
 use_Ledoux_criterion = .false.
 MLT_option = 'Cox'
@@ -121,14 +106,16 @@ threshold_for_smooth_brunt_B = 0.1
 
 ! Output
 
+    log_directory = LOGS_DIR
 terminal_interval = 10
 do_history_file = .true.
 history_interval = 1
-star_history_name = '08Msun_DBCP.history'
+    star_history_name = STAR_HISTORY_NAME
+
 
 write_profiles_flag = .false.
 profile_interval = 100
-profile_data_prefix = '08Msun_DBCP_'
+profile_data_prefix = 'null'
 profile_data_suffix = '.profile'
 
 write_pulse_data_with_profile = .true.
@@ -139,6 +126,9 @@ keep_surface_point_for_pulse_data = .true.
 interpolate_rho_for_pulse_data = .true.
 
 ! When to stop
+
+    xa_central_lower_limit_species(1) = SPECIES
+    xa_central_lower_limit(1) = 1d-9
 
 stop_near_zams = .false.
 ! stop at C depletion

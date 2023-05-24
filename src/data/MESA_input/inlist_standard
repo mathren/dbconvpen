@@ -1,7 +1,7 @@
 &star_job
   pgstar_flag = .false.
   ! begin with a pre-main sequence model
-    create_pre_main_sequence_model = .true.
+    create_pre_main_sequence_model = .false.
 ! will be changed on the fly post C depletion
     new_net_name =  'cno_extras_o18_to_mg26_plus_fe56.net' ! 'mesa_45.net'
     show_net_species_info = .false.
@@ -107,7 +107,7 @@
 
 ! When to stop
     stop_near_zams = .false.
-    xa_central_lower_limit_species(1) = 'h1'
+    xa_central_lower_limit_species(1) = SPECIES
     xa_central_lower_limit(1) = 1d-9
     ! stop at C depletion
     x_logical_ctrl(1) = .true.

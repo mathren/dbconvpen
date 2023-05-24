@@ -54,7 +54,9 @@ for do_pen in dbconvpen:
             replacements['INITIAL_MASS'] = '{:.1f}'.format(M)
             replacements['STAR_HISTORY_NAME'] = "'{}.history'".format(run_tag)
             replacements['MIN_D_MIX'] = '{}'.format(Dm)
-            replacements['FINAL_FILENAME'] = "'{}_Z{}_TAMS.profile'".format(run_tag, Z_str)
+            replacements['FINAL_FILENAME'] = "'{}_Z{}.profile'".format(run_tag, Z_str)
+            replacements['SPECIES'] = "'c12'"
+
 
             for filename in ['clean', 'mk', 're', 'rn', 'stash.py', \
                     'history_columns.list', 'profile_columns.list', 'inlist_xtra_coeff_mesh']:
@@ -76,8 +78,6 @@ for do_pen in dbconvpen:
             template_inlist = open(str(template_dir.joinpath(inlist_name)), 'r')
             run_inlist = open(str(run_dir.joinpath(inlist_name)), 'w')
             for line in template_inlist.readlines():
-                if 'xa_central_lower_limit' in line:
-                    continue
                 for key, string in replacements.items():
                     if key in line:
                         line = line.replace(key, string)
@@ -95,7 +95,7 @@ for do_pen in dbconvpen:
                     if "#PBS -N mesa_standard" in line:
                         line = "#PBS -N mesa_{}_Z{}\n".format(run_tag, Z_str)
                     if 'inlist_standard' in line:
-                        line.replace('inlist_standard', inlist_name)
+                        line = line.replace('inlist_standard', inlist_name)
                     run_job.write(line)
                 template_job.close()
                 run_job.close()

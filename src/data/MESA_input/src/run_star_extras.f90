@@ -74,7 +74,7 @@
           s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
           s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
 
-          ! s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
+          s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
           s% other_overshooting_scheme => extended_convective_penetration
 
           ! Add extra meshing
