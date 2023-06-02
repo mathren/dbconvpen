@@ -70,19 +70,20 @@ for do_pen in dbconvpen:
                     shutil.copytree(str(template_path), str(run_path))
 
             #copy inlist_project_temp w/ appropriate changes
-            if do_pen:
-                inlist_name = 'inlist_dbcp'
-            else:
-                inlist_name = 'inlist_standard'
-            template_inlist = open(str(template_dir.joinpath(inlist_name)), 'r')
-            run_inlist = open(str(run_dir.joinpath(inlist_name)), 'w')
-            for line in template_inlist.readlines():
-                for key, string in replacements.items():
-                    if key in line:
-                        line = line.replace(key, string)
-                run_inlist.write(line)
-            template_inlist.close()
-            run_inlist.close()
+            for inlist_name in ['inlist_specifics_zams', 'inlist_specifics_tams', 'inlist_specifics_hedep', 'inlist_specifics_cdep']:
+                tmp_path    = run_dir.joinpath('tmp')
+                inlist_path = run_dir.joinpath(inlist_name)
+                #move inlist template to tmp
+                shutil.move(str(inlist_path), str(tmp_path))
+                template_inlist = open(str(tmp_path), 'r')
+                run_inlist = open(str(inlist_path), 'w')
+                for line in template_inlist.readlines():
+                    for key, string in replacements.items():
+                        if key in line:
+                            line = line.replace(key, string)
+                    run_inlist.write(line)
+                template_inlist.close()
+                run_inlist.close()
 
             #copy evan's pleiades job submission file (may need to change for other people)
             ### TODO: if you're someone else, you just need to make sure you have an appropriate script to run the grid.
