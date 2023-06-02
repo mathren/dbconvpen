@@ -1,0 +1,61 @@
+! inlist to evolve a ZAMS star to the TAMS
+
+&star_job
+  ! see star/defaults/star_job.defaults
+
+  ! begin with a pre-main sequence model
+    create_pre_main_sequence_model = .false.
+
+  ! save a model at the end of the run
+    save_model_filename = 'MASSM_at_TAMS.mod'
+    filename_for_profile_when_terminate = 'MASSM_at_TAMS_profile.data'
+    save_pulse_data_filename = 'MASSM_at_TAMS_profile.GYRE'
+
+  ! load from a saved model
+    load_saved_model = .true.
+    load_model_filename = 'MASSM_at_ZAMS.mod'
+
+/ ! end of star_job namelist
+
+
+&eos
+  ! eos options
+  ! see eos/defaults/eos.defaults
+
+/ ! end of eos namelist
+
+
+&kap
+  ! kap options
+  ! see kap/defaults/kap.defaults
+  use_Type2_opacities = .true.
+  Zbase = METALLICITY
+
+/ ! end of kap namelist
+
+
+&controls
+  ! see star/defaults/controls.defaults
+
+  ! starting specifications
+    initial_mass = MASS ! in Msun units
+    initial_z = METALLICITY
+
+  ! Mixing
+    min_D_mix = DMIX_VALUE
+
+  ! when to stop
+
+    ! stop when the center mass fraction of h1 drops below this limit
+    xa_central_lower_limit_species(1) = 'h1'
+    xa_central_lower_limit(1) = 1d-9
+
+    ! Resolve depletion
+    delta_lg_XH_cntr_limit = 0.01d0
+    delta_lg_XH_cntr_max   = 0.0d0
+    delta_lg_XH_cntr_min   = -1.0d1
+
+  ! output
+    star_history_name = 'history_to_tams.data'
+
+/ ! end of controls namelist

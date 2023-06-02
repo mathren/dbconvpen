@@ -1,0 +1,73 @@
+! inlist to evolve a star from helium depletion to carbon depletion
+
+&star_job
+  ! see star/defaults/star_job.defaults
+
+  ! begin with a pre-main sequence model
+    create_pre_main_sequence_model = .false.
+
+  ! save a model at the end of the run
+    save_model_filename = 'MASSM_at_cdep.mod'
+    filename_for_profile_when_terminate = 'MASSM_at_cdep_profile.data'
+    save_pulse_data_filename = 'MASSM_at_cdep_profile.GYRE'
+
+  ! load from a saved model
+    load_saved_model = .true.
+    load_model_filename = 'MASSM_at_hedep.mod'
+
+/ ! end of star_job namelist
+
+&eos
+  ! eos options
+  ! see eos/defaults/eos.defaults
+
+/ ! end of eos namelist
+
+&kap
+  ! kap options
+  ! see kap/defaults/kap.defaults
+  use_Type2_opacities = .true.
+  Zbase = METALLICITY
+
+/ ! end of kap namelist
+
+
+&controls
+  ! see star/defaults/controls.defaults
+ 
+  ! Dissipation Balanced Convective Penetration -- see run_stars_extras
+    overshoot_scheme(1) = 'other'
+    overshoot_zone_type(1) = 'any'
+    overshoot_zone_loc(1) = 'core'
+    overshoot_bdy_loc(1) = 'top'
+
+    ! Exponential overshoot at edge of penetration zone -- none if overshoot_f(1) = 0 
+    overshoot_f0(1) = 0.005
+    overshoot_f(1) = 0.00
+
+    ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
+    x_logical_ctrl(10) = .true.
+
+  ! starting specifications
+    initial_mass = MASS ! in Msun units
+    initial_z = METALLICITY
+
+  ! Mixing
+
+    min_D_mix = DMIX_VALUE
+
+  ! when to stop
+
+    ! stop when the center mass fraction of c12 drops below this limit
+    xa_central_lower_limit_species(1) = 'c12'
+    xa_central_lower_limit(1) = 1d-4
+
+    ! Resolve depletion
+    delta_lg_XC_cntr_limit = 0.01d0
+    delta_lg_XC_cntr_max   = 0.0d0
+    delta_lg_XC_cntr_min   = -1.0d1
+
+  ! output
+    star_history_name = 'history_to_cdep.data'
+
+/ ! end of controls namelist

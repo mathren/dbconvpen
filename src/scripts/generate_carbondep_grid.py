@@ -2,6 +2,7 @@
 This python script generates MESA run directories based on a template directory
 for a specified range of initial masses.
 """
+from distutils.dir_util import copy_tree
 import shutil
 from pathlib import Path
 import numpy as np
@@ -26,7 +27,7 @@ masses  = np.concatenate([masses_01, masses_02, masses_03])
 minDmix = np.concatenate([minDmix_01, minDmix_02, minDmix_03])
 
 dbconvpen = [True, False]
-Z_values = [0.02]
+Z_values = [0.014]
 
 template_dir = paths.data / 'MESA_input/'
 print('template_dir:', template_dir)
@@ -38,25 +39,23 @@ replacements['LOGS_DIR']  = "'LOGS'"
 for do_pen in dbconvpen:
     for Zv in Z_values:
         Z_str = '{:.3f}'.format(Zv)
-        replacements['INITIAL_Z'] = Z_str
+        replacements['METALLICITY'] = Z_str
         Z_dir = grid_dir.joinpath('Z{}/'.format(Z_str))
         makedir(Z_dir)
         for M, Dm in zip(masses, minDmix):
 
             if do_pen:
+                this_template_dir = template_dir / 'template_dbcp/'
                 run_tag = 'dbcp_'
             else:
+                this_template_dir = template_dir / 'template_standard/'
                 run_tag = 'standard_'
             run_tag += 'carbon_dep_M{:>05.1f}'.format(M)
             run_dir = Z_dir.joinpath('work_{}/'.format(run_tag))
-            makedir(run_dir)
+            copy_tree(str(this_template_dir), str(run_dir))
 
-            replacements['INITIAL_MASS'] = '{:.1f}'.format(M)
-            replacements['STAR_HISTORY_NAME'] = "'{}.history'".format(run_tag)
-            replacements['MIN_D_MIX'] = '{}'.format(Dm)
-            replacements['FINAL_FILENAME'] = "'{}_Z{}.profile'".format(run_tag, Z_str)
-            replacements['SPECIES'] = "'c12'"
-
+            replacements['MASS'] = '{:.1f}'.format(M)
+            replacements['DMIX_VALUE'] = '{}'.format(Dm)
 
             for filename in ['clean', 'mk', 're', 'rn', 'stash.py', \
                     'history_columns.list', 'profile_columns.list', 'inlist_xtra_coeff_mesh']:

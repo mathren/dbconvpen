@@ -378,6 +378,13 @@
           return
           endif
 
+          if (s% x_logical_ctrl(10) .eqv. .false.) then
+              if (DEBUG) then
+                  write(*,*) 'runstarex_gradT: skip since x_logical_ctrl(10) == false.'
+              end if
+              return
+          end if
+
           do k= s%nz, 1, -1
               if (s%D_mix(k) <= s% min_D_mix) exit
 
