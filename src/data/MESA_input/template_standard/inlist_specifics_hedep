@@ -49,11 +49,6 @@
     xa_central_lower_limit(1) = 1d-5
 
   ! timesteps
-    ! Resolve depletion
-    delta_lg_XHe_cntr_limit = 0.01d0
-    delta_lg_XHe_cntr_max   = 0.0d0
-    delta_lg_XHe_cntr_min   = -1.0d1
-
     ! Resolve when the star goes off the Main sequence
     delta_HR_limit = 0.0025d0
     delta_lgL_He_limit = 0.1 

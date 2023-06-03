@@ -18,8 +18,6 @@
 &kap
 
     kap_file_prefix = 'OP_a09_nans_removed_by_hand'
-    kap_lowT_prefix = 'lowT_fa05_a09p'
-    kap_CO_prefix   = 'a09_co'
     cubic_interpolation_in_X = .true.
     cubic_interpolation_in_Z = .true.
 

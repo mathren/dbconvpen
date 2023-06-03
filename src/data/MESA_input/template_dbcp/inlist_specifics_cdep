@@ -62,11 +62,6 @@
     xa_central_lower_limit_species(1) = 'c12'
     xa_central_lower_limit(1) = 1d-4
 
-    ! Resolve depletion
-    delta_lg_XC_cntr_limit = 0.01d0
-    delta_lg_XC_cntr_max   = 0.0d0
-    delta_lg_XC_cntr_min   = -1.0d1
-
   ! output
     star_history_name = 'history_to_cdep.data'
 
