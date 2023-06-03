@@ -54,11 +54,11 @@
 
     ! stop when the center mass fraction of he4 drops below this limit
     xa_central_lower_limit_species(1) = 'he4'
-    xa_central_lower_limit(1) = 1d-5
+    xa_central_lower_limit(1) = 1d-2  ! Carbon starts burning before full depletion
 
   ! timesteps
     ! Resolve when the star goes off the Main sequence
-    delta_HR_limit = 0.0025d0
+    delta_HR_limit = 1d-2
     delta_lgL_He_limit = 0.1 
 
   ! output
