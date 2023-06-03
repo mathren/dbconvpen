@@ -26,6 +26,9 @@
 
 &controls
 
+    ! Reactions network
+        default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
+
     ! Mixing
         set_min_D_mix = .true.
 

@@ -27,11 +27,11 @@ masses  = np.concatenate([masses_01, masses_02, masses_03])
 minDmix = np.concatenate([minDmix_01, minDmix_02, minDmix_03])
 
 dbconvpen = [True, False]
-Z_values = [0.014]
+Z_values = [0.003, 0.006, 0.010, 0.014]
 
 template_dir = paths.data / 'MESA_input/'
 print('template_dir:', template_dir)
-grid_dir = Path('./carbon_dep_models/')
+grid_dir = Path('./models_grid/')
 makedir(grid_dir)
 
 replacements = dict()
@@ -43,6 +43,7 @@ for do_pen in dbconvpen:
         Z_dir = grid_dir.joinpath('Z{}/'.format(Z_str))
         makedir(Z_dir)
         for M, Dm in zip(masses, minDmix):
+            print('making M = {} / Dm = {}'.format(M, Dm))
 
             if do_pen:
                 this_template_dir = template_dir / 'template_dbcp/'
@@ -50,7 +51,12 @@ for do_pen in dbconvpen:
             else:
                 this_template_dir = template_dir / 'template_standard/'
                 run_tag = 'standard_'
-            run_tag += 'carbon_dep_M{:>05.1f}'.format(M)
+            if Z_str != '0.014':
+                run_tag += 'TAMS_M{:>05.1f}'.format(M)
+            elif M < 8:
+                run_tag += 'helium_dep_M{:>05.1f}'.format(M)
+            else:
+                run_tag += 'carbon_dep_M{:>05.1f}'.format(M)
             run_dir = Z_dir.joinpath('work_{}/'.format(run_tag))
             copy_tree(str(this_template_dir), str(run_dir))
 
@@ -58,7 +64,7 @@ for do_pen in dbconvpen:
             replacements['DMIX_VALUE'] = '{}'.format(Dm)
 
             for filename in ['clean', 'mk', 're', 'rn', 'stash.py', \
-                    'history_columns.list', 'profile_columns.list', 'inlist_xtra_coeff_mesh']:
+                    'history_columns.list', 'profile_columns.list']:
                 template_path = template_dir.joinpath(filename)
                 run_path = run_dir.joinpath(filename)
                 shutil.copy(str(template_path), str(run_path))
@@ -88,9 +94,16 @@ for do_pen in dbconvpen:
             #copy evan's pleiades job submission file (may need to change for other people)
             ### TODO: if you're someone else, you just need to make sure you have an appropriate script to run the grid.
             ### My pleiades job script just loads MESA 22.11.1 and then does a "./clean", a "./mk" and a "./rn inlist_standard"
-            if template_dir.joinpath('evan_pleiades_job_submit').exists():
-                template_job = open(str(template_dir.joinpath('evan_pleiades_job_submit')), 'r')
-                run_job = open(str(run_dir.joinpath('evan_pleiades_job_submit')), 'w')
+            if Z_str != '0.014':
+                jobname = 'evan_pleiades_job_submit_TAMS'
+            elif M < 8:
+                jobname = 'evan_pleiades_job_submit_hedep'
+            else:
+                jobname = 'evan_pleiades_job_submit'
+            new_jobname = 'run_model.pbs'
+            if template_dir.joinpath(jobname).exists():
+                template_job = open(str(template_dir.joinpath(jobname)), 'r')
+                run_job = open(str(run_dir.joinpath(new_jobname)), 'w')
                 for line in template_job.readlines():
                     if "#PBS -N mesa_standard" in line:
                         line = "#PBS -N mesa_{}_Z{}\n".format(run_tag, Z_str)
@@ -100,4 +113,4 @@ for do_pen in dbconvpen:
                 template_job.close()
                 run_job.close()
             else:
-                print('cannot find "evan_pleiades_job_submit"; not copying it')
+                print('cannot find {}; not copying it'.format(jobname))
