@@ -42,6 +42,14 @@
   ! Mixing
     min_D_mix = DMIX_VALUE
 
+  ! Stability Hacks
+      ! MLT++
+      okay_to_reduce_gradT_excess = .true.
+      gradT_excess_f2 = 1d-2
+
+      ! need this extra pressure to stabilize the atmosphere during core He burning
+      Pextra_factor = 2 
+
   ! when to stop
 
     ! stop when the center mass fraction of he4 drops below this limit

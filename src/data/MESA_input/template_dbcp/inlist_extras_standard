@@ -18,8 +18,8 @@
 &kap
 
     kap_file_prefix = 'OP_a09_nans_removed_by_hand'
-    cubic_interpolation_in_X = .true.
-    cubic_interpolation_in_Z = .true.
+    kap_CO_prefix   = 'a09_co' ! 'gs98_co'(default)
+    kap_lowT_prefix = 'lowT_fa05_a09p' !'lowT_fa05_gs98' (default)
 
 / ! end of kap namelist
 
@@ -55,6 +55,14 @@
         ! options for energy conservation (see MESA V, Section 3)
         energy_eqn_option = 'dedt'
         use_gold_tolerances = .true.
+        use_gold2_tolerances = .true.
+        gold2_tol_max_residual2 = 5d-7
+        gold2_tol_max_residual3 = 5d-4
+        gold_tol_max_residual2 = 5d-4
+
+        limit_for_rel_error_in_energy_conservation = 1d-7
+        hard_limit_for_rel_error_in_energy_conservation = 1d-6    
+        never_skip_hard_limits = .true
 
     ! Output
         terminal_interval = 10
@@ -67,5 +75,12 @@
         pulse_data_format = 'GYRE'
         add_atmosphere_to_pulse_data = .true.
         keep_surface_point_for_pulse_data = .true.
+
+    ! Timestepping
+      max_timestep_factor = 1.05d0
+      max_timestep_factor_at_high_T = 1.05d0
+      timestep_factor_for_retries = 0.75
+
+
 
 / ! end of controls namelist
