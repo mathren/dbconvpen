@@ -76,7 +76,7 @@ for do_pen in dbconvpen:
                     shutil.copytree(str(template_path), str(run_path))
 
             #copy inlist_project_temp w/ appropriate changes
-            for inlist_name in ['inlist_specifics_zams', 'inlist_specifics_tams', 'inlist_specifics_hedep', 'inlist_specifics_cdep']:
+            for inlist_name in ['inlist_specifics_zams', 'inlist_specifics_tams', 'inlist_specifics_heignite', 'inlist_specifics_hedep', 'inlist_specifics_cdep']:
                 tmp_path    = run_dir.joinpath('tmp')
                 inlist_path = run_dir.joinpath(inlist_name)
                 #move inlist template to tmp

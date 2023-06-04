@@ -78,7 +78,7 @@
           s% other_overshooting_scheme => extended_convective_penetration
 
           ! Add extra meshing
-          s% use_other_mesh_delta_coeff_factor = .true.
+          s% use_other_mesh_delta_coeff_factor = s% x_logical_ctrl(11)
           call read_inlist_xtra_coeff_core_boundary(ierr) ! Read inlist
           if (ierr /= 0) return
           s% other_mesh_delta_coeff_factor => mesh_delta_coeff_core_boundary

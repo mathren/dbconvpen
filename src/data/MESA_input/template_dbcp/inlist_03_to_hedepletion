@@ -7,9 +7,9 @@
 &star_job
 
     read_extra_star_job_inlist1 = .true.
-    extra_star_job_inlist1_name = 'inlist_specifics_cdep'
+    extra_star_job_inlist1_name = 'inlist_specifics_hedep'
     read_extra_star_job_inlist2 = .true.
-    extra_star_job_inlist2_name = 'inlist_extras_standard'
+    extra_star_job_inlist2_name = 'inlist_extras_postMS'
 
 / ! end of star_job namelist
 
@@ -17,9 +17,9 @@
 &eos
 
     read_extra_eos_inlist1 = .true.
-    extra_eos_inlist1_name = 'inlist_specifics_cdep'
+    extra_eos_inlist1_name = 'inlist_specifics_hedep'
     read_extra_eos_inlist2 = .true.
-    extra_eos_inlist2_name = 'inlist_extras_standard'
+    extra_eos_inlist2_name = 'inlist_extras_postMS'
 
 / ! end of eos namelist
 
@@ -27,9 +27,9 @@
 &kap
 
     read_extra_kap_inlist1 = .true.
-    extra_kap_inlist1_name = 'inlist_specifics_cdep'
+    extra_kap_inlist1_name = 'inlist_specifics_hedep'
     read_extra_kap_inlist2 = .true.
-    extra_kap_inlist2_name = 'inlist_extras_standard'
+    extra_kap_inlist2_name = 'inlist_extras_postMS'
 
 / ! end of kap namelist
 
@@ -37,9 +37,9 @@
 &controls
 
     read_extra_controls_inlist1 = .true.
-    extra_controls_inlist1_name = 'inlist_specifics_cdep'
+    extra_controls_inlist1_name = 'inlist_specifics_hedep'
     read_extra_controls_inlist2 = .true.
-    extra_controls_inlist2_name = 'inlist_extras_standard'
+    extra_controls_inlist2_name = 'inlist_extras_postMS'
 
 / ! end of controls namelist
 

@@ -56,19 +56,11 @@
 
     min_D_mix = DMIX_VALUE
 
-  ! Stability Hacks
-      ! MLT++
-      okay_to_reduce_gradT_excess = .true.
-      gradT_excess_f2 = 1d-2
-
-      ! need this extra pressure to stabilize the atmosphere during core He burning
-      Pextra_factor = 2 
-
   ! when to stop
 
     ! stop when the center mass fraction of c12 drops below this limit
     xa_central_lower_limit_species(1) = 'c12'
-    xa_central_lower_limit(1) = 1d-4
+    xa_central_lower_limit(1) = 1d-9
 
   ! output
     star_history_name = 'history_to_cdep.data'

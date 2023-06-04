@@ -5,6 +5,11 @@
     write_profile_when_terminate = .true.
     save_pulse_data_when_terminate = .true.
 
+  ! Auto-extend reaction network
+    auto_extend_net = .true.
+    h_he_net = 'cno_extras_o18_to_mg26_plus_fe56.net'
+    co_net = 'co_burn_extras.net'
+
   ! display on-screen plots
     pgstar_flag = .true.
 
@@ -26,6 +31,14 @@
 
 &controls
 
+  ! Stability Hacks
+      ! MLT++
+      okay_to_reduce_gradT_excess = .true.
+!      gradT_excess_f2 = 1d-2 !Default = 1d-3; lower = more reduction of superadiabaticity
+
+      ! need this extra pressure to stabilize the atmosphere during core He burning
+      Pextra_factor = 2 
+
     ! Reactions network
         default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
 
@@ -38,6 +51,9 @@
         MLT_option = 'Cox'
         mixing_length_alpha = 1.8d0
         do_conv_premix = .true.
+
+        ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
+        x_logical_ctrl(10) = .false.
 
         ! Thermohaline
         thermohaline_coeff = 1d0
@@ -58,7 +74,10 @@
         ! options for energy conservation (see MESA V, Section 3)
         energy_eqn_option = 'dedt'
         use_gold_tolerances = .true.
-        use_gold2_tolerances = .true.
+        gold_iter_for_resid_tol2 = 0
+        gold_iter_for_resid_tol3 = 0
+        gold_tol_residual_norm3 = 1d-5
+        gold_tol_max_residual3 = 1d-3
 
         limit_for_rel_error_in_energy_conservation = 1d-7
         hard_limit_for_rel_error_in_energy_conservation = 1d-6    
@@ -77,7 +96,7 @@
         keep_surface_point_for_pulse_data = .true.
 
     ! Meshing
-      x_logical_ctrl(11) = .true. ! Use xtra meshing inlist
+      x_logical_ctrl(11) = .false. ! Don't use xtra meshing inlist
 
     ! Timestepping
       max_timestep_factor = 1.05d0
@@ -90,5 +109,7 @@
       delta_lgT_limit = 0.25d0
       delta_lgR_limit = 0.25d0
       delta_lgL_nuc_limit = 0.25d0
+
+
 
 / ! end of controls namelist

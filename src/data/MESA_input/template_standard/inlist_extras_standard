@@ -55,16 +55,13 @@
         hot_wind_scheme = 'Dutch'
         cool_wind_RGB_scheme = 'Dutch'
         cool_wind_AGB_scheme = 'Dutch'
-        Dutch_scaling_factor = 1.0
+        Dutch_scaling_factor = 0.8
 
     ! Solver
         ! options for energy conservation (see MESA V, Section 3)
         energy_eqn_option = 'dedt'
         use_gold_tolerances = .true.
         use_gold2_tolerances = .true.
-        gold2_tol_max_residual2 = 5d-7
-        gold2_tol_max_residual3 = 5d-4
-        gold_tol_max_residual2 = 5d-4
 
         limit_for_rel_error_in_energy_conservation = 1d-7
         hard_limit_for_rel_error_in_energy_conservation = 1d-6    
@@ -82,9 +79,19 @@
         add_atmosphere_to_pulse_data = .true.
         keep_surface_point_for_pulse_data = .true.
 
+    ! Meshing
+      x_logical_ctrl(11) = .true. ! Use xtra meshing inlist
+
     ! Timestepping
       max_timestep_factor = 1.05d0
-      max_timestep_factor_at_high_T = 1.05d0
-      timestep_factor_for_retries = 0.75
+      max_timestep_factor_at_high_T = 1.025d0
+      timestep_factor_for_retries = 0.75d0
+      delta_HR_limit = 1d-2
+      dX_nuc_drop_limit = 1d-2
+      delta_lgP_limit = 0.5d0
+      delta_lgRho_limit = 0.5d0
+      delta_lgT_limit = 0.25d0
+      delta_lgR_limit = 0.25d0
+      delta_lgL_nuc_limit = 0.25d0
 
 / ! end of controls namelist
