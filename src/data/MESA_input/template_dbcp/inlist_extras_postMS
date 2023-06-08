@@ -97,7 +97,6 @@
 
     ! Timestepping
       max_timestep_factor = 1.05d0
-      max_timestep_factor_at_high_T = 1.025d0
       timestep_factor_for_retries = 0.75d0
       delta_HR_limit = 1d-2
       dX_nuc_drop_limit = 1d-2
