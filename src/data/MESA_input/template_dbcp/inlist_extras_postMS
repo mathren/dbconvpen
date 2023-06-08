@@ -31,14 +31,6 @@
 
 &controls
 
-  ! Stability Hacks
-      ! MLT++
-      okay_to_reduce_gradT_excess = .true.
-!      gradT_excess_f2 = 1d-2 !Default = 1d-3; lower = more reduction of superadiabaticity
-
-      ! need this extra pressure to stabilize the atmosphere during core He burning
-      Pextra_factor = 2 
-
     ! Reactions network
         default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
 
@@ -71,10 +63,11 @@
         ! options for energy conservation (see MESA V, Section 3)
         energy_eqn_option = 'dedt'
         use_gold_tolerances = .true.
+        use_gold2_tolerances = .true.
         gold_iter_for_resid_tol2 = 0
         gold_iter_for_resid_tol3 = 0
-        gold_tol_residual_norm3 = 1d-5
-        gold_tol_max_residual3 = 1d-3
+        gold2_iter_for_resid_tol2 = 0
+        gold2_iter_for_resid_tol3 = 0
 
         limit_for_rel_error_in_energy_conservation = 1d-7
         hard_limit_for_rel_error_in_energy_conservation = 1d-6    

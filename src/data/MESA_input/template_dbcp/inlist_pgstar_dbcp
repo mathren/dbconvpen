@@ -43,8 +43,13 @@ Profile_Panels1_other_ymin(1) = 0.2
 Profile_Panels1_ymax(1) = 0.5
 Profile_Panels1_other_ymax(1) = 0.5
 
-Profile_Panels1_yaxis_name(2) = 'gradL'
-Profile_Panels1_other_yaxis_name(2) = 'logS'
+Profile_Panels1_ymin(2) = 0.2
+Profile_Panels1_other_ymin(2) = 0.2
+Profile_Panels1_ymax(2) = 0.5
+Profile_Panels1_other_ymax(2) = 0.5
+
+Profile_Panels1_yaxis_name(2) = 'grada'
+Profile_Panels1_other_yaxis_name(2) = 'gradT'
 Profile_Panels1_yaxis_name(3) = 'x'
 Profile_Panels1_other_yaxis_name(3) = 'y'
 Profile_Panels1_yaxis_name(4) = 'brunt_N2'
