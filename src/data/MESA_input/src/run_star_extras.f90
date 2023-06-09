@@ -32,7 +32,7 @@
 
       real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top
       ! real (dp) :: X_ini
-      integer :: k_PZ_top, k_PZ_bottom
+      integer :: k_PZ_top, k_PZ_bottom, k_PZ_mix_bottom
       logical :: doing_DBP = .false.
       logical :: step2 = .false.
 
@@ -122,8 +122,6 @@
           if (ierr /= 0) return
           doing_DBP = .false.
           extras_start_step = 0
-
-          s% adjust_mlt_gradT_fraction(:) = -1
       end function extras_start_step
 
 
@@ -141,10 +139,11 @@
 
           ! Flag PZ as anonymous_mixing
           if (doing_DBP) then
-            do k=k_PZ_bottom, k_PZ_top, -1
+            do k=k_PZ_mix_bottom, k_PZ_top, -1
                 s%mixing_type(k) = anonymous_mixing
             end do
           endif
+
 
           do_retry = .false.
           ! ! Save model when no longer on pre-main sequence and a convective core has appeared.
@@ -343,7 +342,6 @@
              end if
           end if
 
-
           if (extras_finish_step == terminate) s% termination_code = t_extras_finish_step
 
       end function extras_finish_step
@@ -390,7 +388,9 @@
 
           do k= s%nz, 1, -1
               if (s%D_mix(k) <= s% min_D_mix) exit
-              s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, s% conv_vel(k), ierr)
+              if (k >= k_PZ_top .and. k <= k_PZ_mix_bottom ) then
+                  s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, s% conv_vel(k), ierr)
+              end if
           end do
 
       end subroutine other_adjust_mlt_gradT_fraction_Peclet
@@ -451,13 +451,14 @@
               return
           end if
 
-          
-!          call star_set_mlt_vars(id, 1, s % nz, ierr)
-          call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
-          ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
-          alpha_PZ = alpha_PZ + s%overshoot_f0(j)
+
+          if (.not. step2) then         
+              call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
+              ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
+              alpha_PZ = alpha_PZ
+          end if
           ! Extract parameters
-          f = alpha_PZ                     ! extend of step function (a_ov)
+          f = alpha_PZ + s%overshoot_f0(j)                     ! extend of step function (a_ov)
           f0 = s%overshoot_f0(j)
           f2 = s%overshoot_f(j)            ! exponential decay (f_ov)
 
@@ -501,6 +502,7 @@
               r_step = 0.0_dp
           endif
 
+          k_PZ_mix_bottom = k_a
           face_loop : do k = k_a, k_b, dk
               ! Evaluate the extended convective penetration factor
               r = s%r(k)
@@ -523,6 +525,8 @@
               ! Store the diffusion coefficient and velocity
               D(k) = (D0 + Delta0*D_ob)*factor
               vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
+              s% D_mix(k) = D(k)
+              s%conv_vel(k) = vc(k)
 
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
@@ -539,7 +543,8 @@
           else
               ! Adjust structure with new grads.
               step2 = .true.
-              s% have_new_generation = .false.
+!              call s% other_adjust_mlt_gradT_fraction(id, ierr)
+!              call star_set_mlt_vars(id, 1, s % nz, ierr)
               call star_set_vars(id, s% dt, ierr)
           endif
 
