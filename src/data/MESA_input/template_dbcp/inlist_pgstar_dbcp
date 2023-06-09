@@ -1,6 +1,6 @@
 &pgstar
 
-pgstar_interval = 2
+pgstar_interval = 1
 pgstar_show_age_in_years = .true.
 pgstar_show_age_in_seconds = .false.
 pgstar_sleep = 0.0
@@ -36,29 +36,31 @@ Profile_Panels1_show_mix_regions_on_xaxis = .false.
 
 
 Profile_Panels1_num_panels = 5
-Profile_Panels1_yaxis_name(1) = 'grada' ! 'gradr'
-Profile_Panels1_other_yaxis_name(1) = 'gradr'
-Profile_Panels1_ymin(1) = 0.2
-Profile_Panels1_other_ymin(1) = 0.2
-Profile_Panels1_ymax(1) = 0.5
-Profile_Panels1_other_ymax(1) = 0.5
 
+Profile_Panels1_yaxis_name(1) = 'log_D_mix'
+Profile_Panels1_other_yaxis_name(1) = 'log_D_conv'
+Profile_Panels1_ymin(1) = -1
+Profile_Panels1_other_ymin(1) = -1
+
+Profile_Panels1_yaxis_name(2) = 'grada' ! 'gradr'
+Profile_Panels1_other_yaxis_name(2) = 'gradr'
 Profile_Panels1_ymin(2) = 0.2
 Profile_Panels1_other_ymin(2) = 0.2
 Profile_Panels1_ymax(2) = 0.5
 Profile_Panels1_other_ymax(2) = 0.5
 
-Profile_Panels1_yaxis_name(2) = 'grada'
-Profile_Panels1_other_yaxis_name(2) = 'gradT'
-Profile_Panels1_yaxis_name(3) = 'x'
-Profile_Panels1_other_yaxis_name(3) = 'y'
-Profile_Panels1_yaxis_name(4) = 'brunt_N2'
-Profile_Panels1_other_yaxis_name(4) = 'brunt_B'
-Profile_Panels1_yaxis_name(5) = 'log_D_mix'
-Profile_Panels1_other_yaxis_name(5) = 'log_D_conv'
-Profile_Panels1_ymin(5) = -1
-Profile_Panels1_other_ymin(5) = -1
+Profile_Panels1_ymin(3) = 0.2
+Profile_Panels1_other_ymin(3) = 0.2
+Profile_Panels1_ymax(3) = 0.5
+Profile_Panels1_other_ymax(3) = 0.5
+Profile_Panels1_yaxis_name(3) = 'grada'
+Profile_Panels1_other_yaxis_name(3) = 'gradT'
 
+Profile_Panels1_yaxis_name(4) = 'x'
+Profile_Panels1_other_yaxis_name(4) = 'y'
+
+Profile_Panels1_yaxis_name(5) = 'brunt_N2'
+Profile_Panels1_other_yaxis_name(5) = 'brunt_B'
 Profile_Panels1_file_dir = 'png/'
 Profile_Panels1_file_prefix = 'ConvPen_'
 Profile_Panels1_file_interval = 1

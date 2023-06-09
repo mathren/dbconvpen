@@ -34,6 +34,7 @@
       ! real (dp) :: X_ini
       integer :: k_PZ_top, k_PZ_bottom
       logical :: doing_DBP = .false.
+      logical :: step2 = .false.
 
       !extra meshing controls
        real(dp) :: xtra_dist_below, xtra_dist_above_ov, xtra_dist_above_bv, xtra_coeff_mesh
@@ -75,6 +76,7 @@
           s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
 
           s% other_overshooting_scheme => extended_convective_penetration
+          s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
 
           ! Add extra meshing
           s% use_other_mesh_delta_coeff_factor = s% x_logical_ctrl(11)
@@ -120,6 +122,8 @@
           if (ierr /= 0) return
           doing_DBP = .false.
           extras_start_step = 0
+
+          s% adjust_mlt_gradT_fraction(:) = -1
       end function extras_start_step
 
 
@@ -356,6 +360,41 @@
 
 !!! CUSTOM
 
+   subroutine other_adjust_mlt_gradT_fraction_Peclet(id, ierr)
+          integer, intent(in) :: id
+          integer, intent(out) :: ierr
+          type(star_info), pointer :: s
+          real(dp) :: fraction, Peclet_number, diffusivity    ! f is fraction to compose grad_T = f*grad_ad + (1-f)*grad_rad
+          integer :: k
+          logical, parameter :: DEBUG = .FALSE.
+
+          ierr = 0
+          call star_ptr(id, s, ierr)
+          if (ierr /= 0) return
+
+          if (s%D_mix(1) .ne. s%D_mix(1)) return  ! To ignore iterations where Dmix and gradT are NaNs
+
+          if (s%num_conv_boundaries .lt. 1) then  ! Is zero at initialisation of the run
+          if (DEBUG) then
+              write(*,*) 'runstarex_gradT: skip since there are no convective boundaries'
+          end if
+          return
+          endif
+
+          if (s% x_logical_ctrl(10) .eqv. .false.) then
+              if (DEBUG) then
+                  write(*,*) 'runstarex_gradT: skip since x_logical_ctrl(10) == false.'
+              end if
+              return
+          end if
+
+          do k= s%nz, 1, -1
+              if (s%D_mix(k) <= s% min_D_mix) exit
+              s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, s% conv_vel(k), ierr)
+          end do
+
+      end subroutine other_adjust_mlt_gradT_fraction_Peclet
+
       function calculate_peclet_fraction(s, k, vc, ierr) result(fraction)
             type(star_info), pointer :: s
             integer, intent(in) :: k
@@ -413,7 +452,7 @@
           end if
 
           
-          call star_set_mlt_vars(id, 1, s % nz, ierr)
+!          call star_set_mlt_vars(id, 1, s % nz, ierr)
           call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
           ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
           alpha_PZ = alpha_PZ + s%overshoot_f0(j)
@@ -484,7 +523,6 @@
               ! Store the diffusion coefficient and velocity
               D(k) = (D0 + Delta0*D_ob)*factor
               vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
-              s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, vc(k), ierr)
 
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
@@ -496,8 +534,14 @@
 
           end do face_loop
 
-          ! Adjust with peclet fraction.
-          call star_set_mlt_vars(id, 1, s % nz, ierr)
+          if (step2) then
+              step2 = .false.
+          else
+              ! Adjust structure with new grads.
+              step2 = .true.
+              s% have_new_generation = .false.
+              call star_set_vars(id, s% dt, ierr)
+          endif
 
           if (DEBUG) then
               write(*,*) 'step exponential overshoot:'
