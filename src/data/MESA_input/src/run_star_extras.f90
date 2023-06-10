@@ -234,6 +234,24 @@
           names(11) = 'roll_alpha_pen_zone'
           names(12) = 'roll_r_core'
 
+          delta_r_PZ_rolled = r_PZ - r_core_rolled
+          m_core_rolled = 0.0_dp
+          do k = s% nz, 1, -1
+            if (s% r(k) >= r_core_rolled .and. m_core_rolled .eq. 0.0_dp) then
+                m_core_rolled = s % m(k)
+                alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
+            else if (s % r(k) >= r_PZ) then
+                mass_PZ_rolled = s % m(k) - m_core_rolled
+                exit
+            end if
+          end do
+
+!          write(*,*) "m_cores", m_core/Msun, m_core_rolled/Msun
+!          write(*,*) "m_PZ", mass_PZ/Msun, mass_PZ_rolled/Msun
+!          write(*,*) "alpha_PZ", alpha_PZ, alpha_PZ_rolled
+!          write(*,*) "r_cores", r_core/Rsun, r_core_rolled/Rsun
+!          write(*,*) "delta_r_PZ", delta_r_PZ/Rsun, delta_r_PZ_rolled/Rsun
+
           vals(1) = m_core/Msun
           vals(2) = mass_PZ/Msun
           vals(3) = delta_r_PZ/Rsun
@@ -297,10 +315,6 @@
           call star_ptr(id,s,ierr)
           if(ierr/=0) return
 
-          ! here is an example for adding an extra history header item
-          ! also set how_many_extra_history_header_items
-          ! names(1) = 'mixing_length_alpha'
-          ! vals(1) = s% mixing_length_alpha
       end subroutine data_for_extra_history_header_items
 
 
@@ -529,17 +543,7 @@
             do indx = 2, history_count
                 !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
                 r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
-                r_core_rolled = r_core_history(indx) * dt_history(indx) / avg_time
-            end do
-            delta_r_PZ_rolled = r_PZ - r_core_rolled
-            do k = s% nz, 1, -1
-              if (s% r(k) >= r_core_rolled) then
-                  m_core_rolled = s % m(k)
-                  alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
-              else if (s % r(k) >= r_PZ) then
-                  mass_PZ_rolled = s % m(k) - m_core_rolled
-                  exit
-              end if
+                r_core_rolled = r_core_rolled + r_core_history(indx) * dt_history(indx) / avg_time
             end do
             return
           endif
@@ -570,27 +574,16 @@
               r_PZ_history(1) = r_step + r_ob
 
               ! Get average outer radius of PZ
-
               r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
               r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
               do indx = 2, history_count
                   !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
                   r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
-                  r_core_rolled = r_core_history(indx) * dt_history(indx) / avg_time
-              end do
-              delta_r_PZ_rolled = r_PZ - r_core_rolled
-              do k = s% nz, 1, -1
-                if (s% r(k) >= r_core_rolled) then
-                    m_core_rolled = s % m(k)
-                    alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
-                else if (s % r(k) >= r_PZ) then
-                    mass_PZ_rolled = s % m(k) - m_core_rolled
-                    exit
-                end if
+                  r_core_rolled = r_core_rolled + r_core_history(indx) * dt_history(indx) / avg_time
               end do
               factor = 1.0_dp
           else
-              r_step = 0.0_dp
+              factor = 0.0_dp
           endif
 
 
