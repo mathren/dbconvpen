@@ -533,8 +533,8 @@
                 write(*,*) 'core is not resolved; bailing on overshoot'
             end if
               ! Use no extra mixing.
-              D(:)  = s%D_mix(:)
-              vc(:) = s%conv_vel(:)
+              D(:)  = 0!s%D_mix(:)
+              vc(:) = 0!s%conv_vel(:)
            
             ! Store history before bailing
             r_PZ_history(1) = r_cb

@@ -47,7 +47,7 @@
     ! stop when Helium ignites.
     stop_at_phase_He_Burn = .true.
     xa_central_lower_limit_species(1) = 'he4'
-    xa_central_lower_limit(1) = 0.98 
+    xa_central_lower_limit(1) = HEIGNITE 
 
   ! output
     star_history_name = 'history_to_heignite.data'

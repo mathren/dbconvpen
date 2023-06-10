@@ -40,6 +40,7 @@ for do_pen in dbconvpen:
     for Zv in Z_values:
         Z_str = '{:.3f}'.format(Zv)
         replacements['METALLICITY'] = Z_str
+        replacements['HEIGNITE'] = '{:.3f}'.format(1 - Zv - 0.005)
         Z_dir = grid_dir.joinpath('Z{}/'.format(Z_str))
         makedir(Z_dir)
         for M, Dm in zip(masses, minDmix):

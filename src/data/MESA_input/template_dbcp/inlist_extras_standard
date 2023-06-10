@@ -80,12 +80,13 @@
       x_logical_ctrl(11) = .true. ! Use xtra meshing inlist
 
     ! Timestepping
+      time_delta_coeff = 0.5d0
       max_timestep_factor = 1.1d0
       timestep_factor_for_retries = 0.5d0
       delta_HR_limit = 1d-2
       dX_nuc_drop_limit = 1d-2
 
   ! dbcp rolling -- roll results over 10 timesteps
-    x_integer_ctrl(1) = 5
+    x_integer_ctrl(1) = 10
  
 / ! end of controls namelist
