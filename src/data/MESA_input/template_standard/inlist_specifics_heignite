@@ -41,6 +41,7 @@
 
   ! Mixing
     min_D_mix = DMIX_VALUE
+    overshoot_D_min = DMIX_VALUE
 
   ! when to stop
     ! stop when Helium ignites.

@@ -39,7 +39,7 @@
 
       !need history of: alpha_PZ, r_core, m_core, D_OZ, mass coord, D_mix
       real(dp), allocatable :: m_history(:,:), D_mix_history(:,:), conv_vel_history(:,:)
-      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), m_core_history(:), D_OZ_history(:), dt_history(:)
+      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), r_ob_history(:), r_PZ_history(:), m_core_history(:), D_OZ_history(:), dt_history(:)
       real(dp) :: avg_time
       integer :: history_count = 0, last_i
 
@@ -98,9 +98,11 @@
           allocate(conv_vel_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))    
           allocate(alpha_PZ_history(s%x_integer_ctrl(1)))
           allocate(r_core_history(s%x_integer_ctrl(1)))
+          allocate(r_PZ_history(s%x_integer_ctrl(1)))
           allocate(m_core_history(s%x_integer_ctrl(1)))
           allocate(D_OZ_history(s%x_integer_ctrl(1)))
           allocate(dt_history(s%x_integer_ctrl(1)))
+            allocate(r_ob_history(s%x_integer_ctrl(1))) 
           last_i = s%x_integer_ctrl(1)
 
 
@@ -159,15 +161,19 @@
               m_core_history(i) = m_core_history(i-1)
               D_OZ_history(i) = D_OZ_history(i-1)
               dt_history(i) = dt_history(i-1)
+              r_PZ_history(i) = r_PZ_history(i-1)
+              r_ob_history(i) = r_ob_history(i-1)
           end do
           m_history(1, :) = 0
           D_mix_history(1, :) = 0
           conv_vel_history(1, :) = 0
           alpha_PZ_history(1) = 0
           r_core_history(1) = 0
+          r_PZ_history(1) = 0
           m_core_history(1) = 0
           D_OZ_history(1) = 0
           dt_history(1) = s % dt
+          r_ob_history(1) = 0
           avg_time = 0
           do i = 1, history_count
                 avg_time = avg_time + dt_history(i)
@@ -432,19 +438,19 @@
           ! indx = history index
           ! indx2 = history array index
           ! indx3 = mass coordinate index
-          if (history_count > 1) then
-            do indx3 = s % nz, 1, -1
-              conv_vel(indx3) = 0
-              do indx = 1, history_count
-                do indx2 = 1, s % x_integer_ctrl(2)
-                  if (m_history(indx, indx2) >= s % m(indx3)) exit
-                end do
-                if (indx2 < s % x_integer_ctrl(2)) then
-                    conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)*dt_history(indx)/avg_time
-                endif
-              end do
-            end do
-          end if
+          !if (history_count > 1) then
+          !  do indx3 = s % nz, 1, -1
+          !    conv_vel(indx3) = 0
+          !    do indx = 1, history_count
+          !      do indx2 = 1, s % x_integer_ctrl(2)
+          !        if (m_history(indx, indx2) >= s % m(indx3)) exit
+          !      end do
+          !      if (indx2 < s % x_integer_ctrl(2)) then
+          !          conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)*dt_history(indx)/avg_time
+          !      endif
+          !    end do
+          !  end do
+          !end if
 
           ! set histories for m, D_mix, conv_vel
           do i = 0, s% x_integer_ctrl(2)
@@ -472,9 +478,16 @@
 
           do k= s%nz, 1, -1
               if (s%D_mix(k) <= s% min_D_mix) exit
-              if (k >= k_PZ_top .and. k <= k_PZ_mix_bottom ) then
-                  s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, conv_vel(k), ierr)
-              end if
+              if (s%conv_vel(k) > 0) then
+                conv_vel(k) = s%conv_vel(k)
+              else if (k < s% nz) then
+                ! Use conv_vel from last cell
+                conv_vel(k) = conv_vel(k+1)
+              else 
+                conv_vel(k) = 0
+              endif
+              s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, conv_vel(k), ierr)
+              !write(*,*) 'fraction, conv_vel', s% adjust_mlt_gradT_fraction(k), conv_vel(k)
           end do
 
       end subroutine other_adjust_mlt_gradT_fraction_Peclet
@@ -513,7 +526,7 @@
           real(dp) :: r_ob, D_ob, vc_ob
           logical  :: outward
           integer  :: dk, k, k_ob, indx, indx2, indx3
-          real(dp) :: r, dr, r_step
+          real(dp) :: r, dr, r_step, r_PZ
 
           ! Evaluate the overshoot diffusion coefficient D(k_a:k_b) and
           ! mixing velocity vc(k_a:k_b) at the i'th convective boundary,
@@ -577,16 +590,17 @@
           if (ierr /= 0) return
 
           D_OZ_history(1) = D_ob
-          D_ob = 0
-          do indx = 1, history_count
-            D_ob = D_ob + D_OZ_history(indx) / history_count
-          end do
+          r_ob_history(1) = r_ob
+          !D_ob = 0
+          !do indx = 1, history_count
+          !  D_ob = D_ob + D_OZ_history(indx) / history_count
+          !end do
 
           ! Loop over cell faces, adding overshoot until D <= overshoot_D_min
           outward = s%top_conv_bdy(i)
 
           if (outward) then
-              k_a = k_ob
+              k_a = s % nz
               k_b = 1
               dk = -1
           else
@@ -597,39 +611,59 @@
 
           if (f > 0.0_dp) then
               r_step = f*Hp_cb
+              r_PZ_history(1) = r_step + r_ob
+
+              ! Get average outer radius of PZ
+              r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
+              do indx = 2, history_count
+                  !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
+                  r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
+              end do
+              factor = 1.0_dp
           else
               r_step = 0.0_dp
           endif
 
+          !write(*,*) 'D0, Delta0, D_ob, factor', D0, Delta0, D_ob, factor
+
           k_PZ_mix_bottom = k_a
-          face_loop : do k = k_a, k_b, dk
+          face_loop : do k = k_a, k_b, dk 
               ! Evaluate the extended convective penetration factor
               r = s%r(k)
-              if (outward) then
-                  dr = r - r_ob
-              else
-                  dr = r_ob - r
-              endif
-
-              if (dr < r_step .AND. f > 0.0_dp) then  ! step factor
-                  factor = 1.0_dp
-              else
-                  if ( f2 > 0.0_dp) then                ! exponential factor
-                      factor = exp(-2.0_dp*(dr-r_step)/(f2*Hp_cb))
-                  else
-                      factor = 0.0_dp
-                  endif
-              endif
-
+              if (r > r_PZ) exit face_loop
+              !write(*,*) 'r, r_PZ', r/Rsun, r_PZ/Rsun
+              !if (outward) then
+              !    dr = r - r_ob
+              !else
+              !    dr = r_ob - r
+              !endif
+              !
+              !if (dr < r_step .AND. f > 0.0_dp) then  ! step factor
+              !    factor = 1.0_dp
+              !else
+              !    if ( f2 > 0.0_dp) then                ! exponential factor
+              !        factor = exp(-2.0_dp*(dr-r_step)/(f2*Hp_cb))
+              !    else
+              !        factor = 0.0_dp
+              !    endif
+              !endif
+              
               ! Store the diffusion coefficient and velocity
               D(k) = (D0 + Delta0*D_ob)*factor
               vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
-              s% D_mix(k) = D(k)
-              s%conv_vel(k) = vc(k)
-              if (s % nz - k < s % x_integer_ctrl(2)) then
-                D_mix_history(1, s % nz - k + 1) = D(k)
-                conv_vel_history(1, s % nz - k + 1) = vc(k)
+              if (s% D_mix(k) < D(k)) then
+                !write(*,*) 'overwriting D_mix with D'
+                s% D_mix(k) = D(k)
+                s%conv_vel(k) = vc(k)
+              else 
+                !write(*,*) 'preserving D_mix', D(k), s% D_mix(k)
+                D(k) = s% D_mix(k)
+                vc(k) = s%conv_vel(k)
               endif
+              !if (s % nz - k < s % x_integer_ctrl(2)) then
+              !  D_mix_history(1, s % nz - k + 1) = D(k)
+              !  conv_vel_history(1, s % nz - k + 1) = vc(k)
+              !endif
 
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
