@@ -457,7 +457,7 @@
           integer, intent(out) :: ierr
           type (star_info), pointer :: s
 
-          logical, parameter :: DEBUG = .TRUE.
+          logical, parameter :: DEBUG = .FALSE.
           real(dp) :: f, f0
           real(dp) :: D0, Delta0
           real(dp) :: w
