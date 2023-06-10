@@ -54,16 +54,6 @@
         cool_wind_AGB_scheme = 'Dutch'
         Dutch_scaling_factor = 0.8
 
-    ! Solver
-        ! options for energy conservation (see MESA V, Section 3)
-        energy_eqn_option = 'dedt'
-        use_gold_tolerances = .true.
-        use_gold2_tolerances = .true.
-
-        limit_for_rel_error_in_energy_conservation = 1d-7
-        hard_limit_for_rel_error_in_energy_conservation = 1d-6    
-        never_skip_hard_limits = .true
-
     ! Output
         terminal_interval = 10
         photo_interval = 1000

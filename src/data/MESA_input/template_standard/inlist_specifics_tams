@@ -54,4 +54,15 @@
   ! output
     star_history_name = 'history_to_tams.data'
 
+    ! Solver
+        ! options for energy conservation (see MESA V, Section 3)
+        energy_eqn_option = 'dedt'
+        use_gold_tolerances = .true.
+        use_gold2_tolerances = .true.
+
+        limit_for_rel_error_in_energy_conservation = 1d-7
+        hard_limit_for_rel_error_in_energy_conservation = 1d-6    
+        never_skip_hard_limits = .true
+
+
 / ! end of controls namelist
