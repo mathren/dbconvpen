@@ -31,10 +31,16 @@
       implicit none
 
       real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top
+      real (dp) :: alpha_PZ_old = 0
       ! real (dp) :: X_ini
       integer :: k_PZ_top, k_PZ_bottom, k_PZ_mix_bottom
       logical :: doing_DBP = .false.
       logical :: step2 = .false.
+
+      !need history of: alpha_PZ, r_core, m_core, D_OZ, mass coord, D_mix
+      real(dp), allocatable :: m_history(:,:), D_mix_history(:,:), conv_vel_history(:,:)
+      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), m_core_history(:), D_OZ_history(:)
+      integer :: history_count = 0, last_i
 
       !extra meshing controls
        real(dp) :: xtra_dist_below, xtra_dist_above_ov, xtra_dist_above_bv, xtra_coeff_mesh
@@ -84,6 +90,19 @@
           if (ierr /= 0) return
           s% other_mesh_delta_coeff_factor => mesh_delta_coeff_core_boundary
 
+          ! allocate DBCP memory
+          write(*,*) 'allocating'
+          allocate(m_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))
+          allocate(D_mix_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))
+          allocate(conv_vel_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))    
+          allocate(alpha_PZ_history(s%x_integer_ctrl(1)))
+          allocate(r_core_history(s%x_integer_ctrl(1)))
+          allocate(m_core_history(s%x_integer_ctrl(1)))
+          allocate(D_OZ_history(s%x_integer_ctrl(1)))
+          last_i = s%x_integer_ctrl(1)
+
+
+
           ! if (.not. s%job% create_pre_main_sequence_model) then
             ! load_model_filename = 'ZAMS.mod'
             ! load_saved_model = .true.
@@ -110,18 +129,34 @@
           !     s% job% save_model_filename = 'ZAMS.mod'
           ! endif
 
+          
+
+
       end subroutine extras_startup
 
 
       integer function extras_start_step(id)
           integer, intent(in) :: id
-          integer :: ierr
+          integer :: ierr, i
           type (star_info), pointer :: s
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
           doing_DBP = .false.
           extras_start_step = 0
+
+          if (history_count < s%x_integer_ctrl(1)) then
+              history_count = history_count + 1
+          end if
+          do i = s%x_integer_ctrl(1), 2, -1
+              m_history(i, :) = m_history(i-1, :)
+              D_mix_history(i, :) = D_mix_history(i-1, :)
+              conv_vel_history(i, :) = conv_vel_history(i-1, :)
+              alpha_PZ_history(i) = alpha_PZ_history(i-1)
+              r_core_history(i) = r_core_history(i-1)
+              m_core_history(i) = m_core_history(i-1)
+              D_OZ_history(i) = D_OZ_history(i-1)
+          end do
       end function extras_start_step
 
 
@@ -316,6 +351,8 @@
           if (ierr /= 0) return
           extras_finish_step = keep_going
 
+          alpha_PZ_old = alpha_PZ
+
           ! stop at carbon depletion
           if (s% x_logical_ctrl(1) .eqv. .true.) then
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
@@ -363,7 +400,7 @@
           integer, intent(out) :: ierr
           type(star_info), pointer :: s
           real(dp) :: fraction, Peclet_number, diffusivity    ! f is fraction to compose grad_T = f*grad_ad + (1-f)*grad_rad
-          integer :: k
+          integer :: k, i, indx
           logical, parameter :: DEBUG = .FALSE.
 
           ierr = 0
@@ -371,6 +408,16 @@
           if (ierr /= 0) return
 
           if (s%D_mix(1) .ne. s%D_mix(1)) return  ! To ignore iterations where Dmix and gradT are NaNs
+
+          ! set histories for m, D_mix, conv_vel
+          do i = 0, s% x_integer_ctrl(2)
+              indx = s% nz - i
+              if (indx < 1) exit
+              if (i >= s% x_integer_ctrl(2)) exit
+              m_history(1,i+1) = s% m(indx)
+              D_mix_history(1,i+1) = s% D_mix(indx)
+              conv_vel_history(1,i+1) = s% conv_vel(indx)
+          end do
 
           if (s%num_conv_boundaries .lt. 1) then  ! Is zero at initialisation of the run
           if (DEBUG) then
@@ -428,7 +475,7 @@
           real(dp) :: r_cb, Hp_cb
           real(dp) :: r_ob, D_ob, vc_ob
           logical  :: outward
-          integer  :: dk, k, k_ob
+          integer  :: dk, k, k_ob, indx, indx2, indx3
           real(dp) :: r, dr, r_step
 
           ! Evaluate the overshoot diffusion coefficient D(k_a:k_b) and
@@ -455,10 +502,21 @@
           if (.not. step2) then         
               call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
               ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
-              alpha_PZ = alpha_PZ
+              alpha_PZ_history(1) = alpha_PZ
+              alpha_PZ = 0
+              do indx = 1, history_count
+                  alpha_PZ = alpha_PZ + alpha_PZ_history(indx)
+              end do
+              alpha_PZ = alpha_PZ / history_count
+              
           end if
           ! Extract parameters
-          f = alpha_PZ + s%overshoot_f0(j)                     ! extend of step function (a_ov)
+          if (alpha_PZ_old .ne. 0d0) then   
+                  f = (alpha_PZ_old + alpha_PZ)/2d0 + s%overshoot_f0(j)
+          else
+                  f = alpha_PZ + s%overshoot_f0(j) 
+          end if
+                           ! extend of step function (a_ov)
           f0 = s%overshoot_f0(j)
           f2 = s%overshoot_f(j)            ! exponential decay (f_ov)
 
@@ -482,6 +540,12 @@
           ! Evaluate overshoot boundary (_ob) parameters
           call star_eval_over_bdy_params(s, i, f0, k_ob, r_ob, D_ob, vc_ob, ierr)
           if (ierr /= 0) return
+
+          D_OZ_history(1) = D_ob
+          D_ob = 0
+          do indx = 1, history_count
+            D_ob = D_ob + D_OZ_history(indx) / history_count
+          end do
 
           ! Loop over cell faces, adding overshoot until D <= overshoot_D_min
           outward = s%top_conv_bdy(i)
@@ -527,6 +591,10 @@
               vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
               s% D_mix(k) = D(k)
               s%conv_vel(k) = vc(k)
+              if (s % nz - k < s % x_integer_ctrl(2)) then
+                D_mix_history(1, s % nz - k + 1) = D(k)
+                conv_vel_history(1, s % nz - k + 1) = vc(k)
+              endif
 
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
@@ -537,6 +605,29 @@
               endif
 
           end do face_loop
+
+          ! Properly set D_mix and conv_vel based on history averages
+          ! This is not quite right -- need to do it based on mass coordinate.
+          ! indx = history index
+          ! indx2 = history array index
+          ! indx3 = mass coordinate index
+          if (history_count > 1) then
+            do indx3 = s % nz, 1, -1
+              s% D_mix(indx3) = 0
+              s% conv_vel(indx3) = 0
+              do indx = 1, history_count
+                do indx2 = 1, s % x_integer_ctrl(2)
+                  if (m_history(indx, indx2) > s % m(indx3)) then
+                    s% D_mix(indx3) = s% D_mix(indx3) + D_mix_history(indx, indx2)/history_count
+                    s% conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)/history_count
+                    exit
+                  end if
+                end do
+              end do
+              D(indx3) = s% D_mix(indx3)
+              vc(indx3) = s% conv_vel(indx3)
+            end do
+          end if
 
           if (step2) then
               step2 = .false.
@@ -568,7 +659,7 @@
          integer, intent(in) :: id
          real(dp), parameter :: f = 0.86d0
          real(dp), parameter :: xi = 0.6d0
-         integer :: k, j, ierr
+         integer :: k, j, ierr, indx
          real(dp) :: Lint, V_CZ, Favg, RHS, dr, h, dLint
          real(dp) :: r_cb
 
@@ -579,10 +670,20 @@
          call star_eval_conv_bdy_k(s, 1, k, ierr)
          call star_eval_conv_bdy_r(s, 1, r_cb, ierr)
          k_PZ_bottom = k
-         r_core = r_cb
-         m_core = s%m(k)
+         r_core_history(1) = r_cb
+         m_core_history(1) = s%m(k)
+         
          rho_core_top = s%rho(k)
          h = s%scale_height(k)
+
+         r_core = 0
+         m_core = 0
+         do indx = 1, history_count
+                  r_core = r_core + r_core_history(indx)
+                  m_core = m_core + m_core_history(indx)
+         end do
+         r_core = r_core / history_count
+         m_core = m_core / history_count
 
          ! prescription based on Jermyn A. et al (2022)  https://arxiv.org/pdf/2203.09525.pdf
          ! Equation A1 is used here.
