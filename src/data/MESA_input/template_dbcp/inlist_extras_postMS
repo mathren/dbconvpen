@@ -105,6 +105,9 @@
       delta_lgR_limit = 0.25d0
       delta_lgL_nuc_limit = 0.25d0
 
-
+  ! dbcp rolling
+    x_integer_ctrl(1) = 5
+    x_integer_ctrl(2) = 1000
+ 
 
 / ! end of controls namelist

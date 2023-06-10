@@ -39,7 +39,8 @@
 
       !need history of: alpha_PZ, r_core, m_core, D_OZ, mass coord, D_mix
       real(dp), allocatable :: m_history(:,:), D_mix_history(:,:), conv_vel_history(:,:)
-      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), m_core_history(:), D_OZ_history(:)
+      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), m_core_history(:), D_OZ_history(:), dt_history(:)
+      real(dp) :: avg_time
       integer :: history_count = 0, last_i
 
       !extra meshing controls
@@ -99,6 +100,7 @@
           allocate(r_core_history(s%x_integer_ctrl(1)))
           allocate(m_core_history(s%x_integer_ctrl(1)))
           allocate(D_OZ_history(s%x_integer_ctrl(1)))
+          allocate(dt_history(s%x_integer_ctrl(1)))
           last_i = s%x_integer_ctrl(1)
 
 
@@ -156,6 +158,19 @@
               r_core_history(i) = r_core_history(i-1)
               m_core_history(i) = m_core_history(i-1)
               D_OZ_history(i) = D_OZ_history(i-1)
+              dt_history(i) = dt_history(i-1)
+          end do
+          m_history(1, :) = 0
+          D_mix_history(1, :) = 0
+          conv_vel_history(1, :) = 0
+          alpha_PZ_history(1) = 0
+          r_core_history(1) = 0
+          m_core_history(1) = 0
+          D_OZ_history(1) = 0
+          dt_history(1) = s % dt
+          avg_time = 0
+          do i = 1, history_count
+                avg_time = avg_time + dt_history(i)
           end do
       end function extras_start_step
 
@@ -400,14 +415,36 @@
           integer, intent(out) :: ierr
           type(star_info), pointer :: s
           real(dp) :: fraction, Peclet_number, diffusivity    ! f is fraction to compose grad_T = f*grad_ad + (1-f)*grad_rad
-          integer :: k, i, indx
+          integer :: k, i, indx, indx2, indx3
           logical, parameter :: DEBUG = .FALSE.
+          real(dp), allocatable :: conv_vel(:)
 
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
 
+          allocate(conv_vel(s% nz))
+
           if (s%D_mix(1) .ne. s%D_mix(1)) return  ! To ignore iterations where Dmix and gradT are NaNs
+
+          ! Properly set D_mix and conv_vel based on history averages
+          ! This is not quite right -- need to do it based on mass coordinate.
+          ! indx = history index
+          ! indx2 = history array index
+          ! indx3 = mass coordinate index
+          if (history_count > 1) then
+            do indx3 = s % nz, 1, -1
+              conv_vel(indx3) = 0
+              do indx = 1, history_count
+                do indx2 = 1, s % x_integer_ctrl(2)
+                  if (m_history(indx, indx2) >= s % m(indx3)) exit
+                end do
+                if (indx2 < s % x_integer_ctrl(2)) then
+                    conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)*dt_history(indx)/avg_time
+                endif
+              end do
+            end do
+          end if
 
           ! set histories for m, D_mix, conv_vel
           do i = 0, s% x_integer_ctrl(2)
@@ -436,7 +473,7 @@
           do k= s%nz, 1, -1
               if (s%D_mix(k) <= s% min_D_mix) exit
               if (k >= k_PZ_top .and. k <= k_PZ_mix_bottom ) then
-                  s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, s% conv_vel(k), ierr)
+                  s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, conv_vel(k), ierr)
               end if
           end do
 
@@ -503,19 +540,17 @@
               call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
               ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
               alpha_PZ_history(1) = alpha_PZ
-              alpha_PZ = 0
-              do indx = 1, history_count
-                  alpha_PZ = alpha_PZ + alpha_PZ_history(indx)
-              end do
-              alpha_PZ = alpha_PZ / history_count
+              !alpha_PZ = 0
+              !do indx = 1, history_count
+              !    alpha_PZ = alpha_PZ + alpha_PZ_history(indx)
+              !end do
+              !alpha_PZ = alpha_PZ / history_count
               
           end if
           ! Extract parameters
-          if (alpha_PZ_old .ne. 0d0) then   
-                  f = (alpha_PZ_old + alpha_PZ)/2d0 + s%overshoot_f0(j)
-          else
-                  f = alpha_PZ + s%overshoot_f0(j) 
-          end if
+          
+          f = alpha_PZ + s%overshoot_f0(j) 
+          
                            ! extend of step function (a_ov)
           f0 = s%overshoot_f0(j)
           f2 = s%overshoot_f(j)            ! exponential decay (f_ov)
@@ -606,28 +641,7 @@
 
           end do face_loop
 
-          ! Properly set D_mix and conv_vel based on history averages
-          ! This is not quite right -- need to do it based on mass coordinate.
-          ! indx = history index
-          ! indx2 = history array index
-          ! indx3 = mass coordinate index
-          if (history_count > 1) then
-            do indx3 = s % nz, 1, -1
-              s% D_mix(indx3) = 0
-              s% conv_vel(indx3) = 0
-              do indx = 1, history_count
-                do indx2 = 1, s % x_integer_ctrl(2)
-                  if (m_history(indx, indx2) > s % m(indx3)) then
-                    s% D_mix(indx3) = s% D_mix(indx3) + D_mix_history(indx, indx2)/history_count
-                    s% conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)/history_count
-                    exit
-                  end if
-                end do
-              end do
-              D(indx3) = s% D_mix(indx3)
-              vc(indx3) = s% conv_vel(indx3)
-            end do
-          end if
+          
 
           if (step2) then
               step2 = .false.
@@ -672,18 +686,20 @@
          k_PZ_bottom = k
          r_core_history(1) = r_cb
          m_core_history(1) = s%m(k)
+         m_core = s%m(k)
+         r_core = r_cb
          
          rho_core_top = s%rho(k)
          h = s%scale_height(k)
 
-         r_core = 0
-         m_core = 0
-         do indx = 1, history_count
-                  r_core = r_core + r_core_history(indx)
-                  m_core = m_core + m_core_history(indx)
-         end do
-         r_core = r_core / history_count
-         m_core = m_core / history_count
+         !r_core = 0
+         !m_core = 0
+         !do indx = 1, history_count
+         !         r_core = r_core + r_core_history(indx)
+         !         m_core = m_core + m_core_history(indx)
+         !end do
+         !r_core = r_core / history_count
+         !m_core = m_core / history_count
 
          ! prescription based on Jermyn A. et al (2022)  https://arxiv.org/pdf/2203.09525.pdf
          ! Equation A1 is used here.
