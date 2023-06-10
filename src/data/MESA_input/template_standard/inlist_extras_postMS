@@ -57,6 +57,9 @@
         gradT_excess_lambda1 = 0.6d0
         gradT_excess_beta1 = 0.05d0
 
+        ! Additional Stability Hack.
+        Pextra_factor = 2
+
     ! Atmosphere
         atm_option = 'T_tau'
         atm_T_tau_relation = 'Krishna_Swamy'
@@ -110,7 +113,6 @@
 
   ! dbcp rolling
     x_integer_ctrl(1) = 5
-    x_integer_ctrl(2) = 1000
  
 
 

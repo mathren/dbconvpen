@@ -47,7 +47,7 @@
 
     ! stop when we run out of He or when C burns.
     xa_central_lower_limit_species(1) = 'he4'
-    xa_central_lower_limit(1) = 1d-9  ! Carbon starts burning before full depletion
+    xa_central_lower_limit(1) = 1d-6
 
     stop_at_phase_TACHeB = .true.
     stop_at_phase_C_Burn = .true.

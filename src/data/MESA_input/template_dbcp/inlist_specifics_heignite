@@ -35,18 +35,17 @@
 &controls
   ! see star/defaults/controls.defaults
 
-!  ! Dissipation Balanced Convective Penetration -- see run_stars_extras
-!    overshoot_scheme(1) = 'other'
-!    overshoot_zone_type(1) = 'any'
-!    overshoot_zone_loc(1) = 'core'
-!    overshoot_bdy_loc(1) = 'top'
-!
-!    ! Exponential overshoot at edge of penetration zone -- none if overshoot_f(1) = 0 
-!    overshoot_f0(1) = 0.005
-!    overshoot_f(1) = 0.00
-!
-!    ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
-!    x_logical_ctrl(10) = .true.
+  ! Dissipation Balanced Convective Penetration -- see run_stars_extras
+    overshoot_scheme(1) = 'other'
+    overshoot_zone_type(1) = 'any'
+    overshoot_zone_loc(1) = 'core'
+    overshoot_bdy_loc(1) = 'top'
+
+    ! f0 determins how far back into CZ the OZ properties are set.
+    overshoot_f0(1) = 0.005
+
+    ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
+    x_logical_ctrl(10) = .true.
 
   ! starting specifications
     initial_mass = MASS ! in Msun units

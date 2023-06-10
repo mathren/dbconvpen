@@ -43,9 +43,8 @@
     overshoot_zone_loc(1) = 'core'
     overshoot_bdy_loc(1) = 'top'
 
-    ! Exponential overshoot at edge of penetration zone -- none if overshoot_f(1) = 0 
+    ! f0 determins how far back into CZ the OZ properties are set.
     overshoot_f0(1) = 0.005
-    overshoot_f(1) = 0.00
 
     ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
     x_logical_ctrl(10) = .true.

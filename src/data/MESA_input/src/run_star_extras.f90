@@ -30,18 +30,21 @@
 
       implicit none
 
-      real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top
-      real (dp) :: alpha_PZ_old = 0
-      ! real (dp) :: X_ini
-      integer :: k_PZ_top, k_PZ_bottom, k_PZ_mix_bottom
-      logical :: doing_DBP = .false.
-      logical :: step2 = .false.
+      ! x_logical_ctrl, x_integer_ctrl, x_ctrl variables
+      logical :: do_mix_gradT, do_stop_at_carbondep, do_stop_at_corecollapse
+      integer :: rolling_count
 
-      !need history of: alpha_PZ, r_core, m_core, D_OZ, mass coord, D_mix
-      real(dp), allocatable :: m_history(:,:), D_mix_history(:,:), conv_vel_history(:,:)
-      real(dp), allocatable :: alpha_PZ_history(:), r_core_history(:), r_ob_history(:), r_PZ_history(:), m_core_history(:), D_OZ_history(:), dt_history(:)
-      real(dp) :: avg_time
-      integer :: history_count = 0, last_i
+      ! Global variables -- helps with outputs, etc.
+      real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, r_PZ, rho_core_top
+      ! real (dp) :: X_ini
+      integer :: k_PZ_top, k_PZ_bottom
+      logical :: doing_DBP = .false., step2 = .false.
+
+      ! Rolling history variables; need history of: dt and r_core (_PZ variable is core + PZ)
+      real(dp), allocatable :: r_core_history(:), r_PZ_history(:), dt_history(:)
+      integer :: history_count = 0
+      real(dp) :: avg_time = 0.0_dp
+      real(dp) :: r_core_rolled, delta_r_PZ_rolled, m_core_rolled, mass_PZ_rolled, alpha_PZ_rolled
 
       !extra meshing controls
        real(dp) :: xtra_dist_below, xtra_dist_above_ov, xtra_dist_above_bv, xtra_coeff_mesh
@@ -84,35 +87,26 @@
 
           s% other_overshooting_scheme => extended_convective_penetration
           s% other_adjust_mlt_gradT_fraction => other_adjust_mlt_gradT_fraction_Peclet
-
+ 
+          ! Custom logical controls
+          do_stop_at_carbondep = s% x_logical_ctrl(1)
+          do_stop_at_corecollapse = s% x_logical_ctrl(2)
+          do_mix_gradT = s% x_logical_ctrl(10)
           ! Add extra meshing
           s% use_other_mesh_delta_coeff_factor = s% x_logical_ctrl(11)
           call read_inlist_xtra_coeff_core_boundary(ierr) ! Read inlist
           if (ierr /= 0) return
           s% other_mesh_delta_coeff_factor => mesh_delta_coeff_core_boundary
 
-          ! allocate DBCP memory
-          write(*,*) 'allocating'
-          allocate(m_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))
-          allocate(D_mix_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))
-          allocate(conv_vel_history(s%x_integer_ctrl(1), s%x_integer_ctrl(2)))    
-          allocate(alpha_PZ_history(s%x_integer_ctrl(1)))
-          allocate(r_core_history(s%x_integer_ctrl(1)))
-          allocate(r_PZ_history(s%x_integer_ctrl(1)))
-          allocate(m_core_history(s%x_integer_ctrl(1)))
-          allocate(D_OZ_history(s%x_integer_ctrl(1)))
-          allocate(dt_history(s%x_integer_ctrl(1)))
-            allocate(r_ob_history(s%x_integer_ctrl(1))) 
-          last_i = s%x_integer_ctrl(1)
+          ! Custom integer controls
+          rolling_count = s % x_integer_ctrl(1)
+          if (rolling_count < 1) rolling_count = 1
 
-
-
-          ! if (.not. s%job% create_pre_main_sequence_model) then
-            ! load_model_filename = 'ZAMS.mod'
-            ! load_saved_model = .true.
-          ! endif
-          ! s% kap_rq% Zbase = Z_ini ! set Z for opacity tables
-
+          ! allocate DBCP rolling memory
+          write(*,*) 'allocating'    
+          allocate(r_core_history(rolling_count))
+          allocate(r_PZ_history(rolling_count))
+          allocate(dt_history(rolling_count))
 
       end subroutine extras_controls
 
@@ -124,18 +118,7 @@
           type (star_info), pointer :: s
           ierr = 0
           call star_ptr(id, s, ierr)
-          if (ierr /= 0) return
-
-          ! if (s%job% create_pre_main_sequence_model) then
-          !     X_ini=s% center_h1
-          !     s%job% save_model_when_terminate = .true.
-          !     s% scale_max_correction = 0.1       ! to help pre-MS convergence
-          !     s% job% save_model_filename = 'ZAMS.mod'
-          ! endif
-
-          
-
-
+          if (ierr /= 0) return        
       end subroutine extras_startup
 
 
@@ -149,31 +132,17 @@
           doing_DBP = .false.
           extras_start_step = 0
 
-          if (history_count < s%x_integer_ctrl(1)) then
+          if (history_count < rolling_count) then
               history_count = history_count + 1
           end if
-          do i = s%x_integer_ctrl(1), 2, -1
-              m_history(i, :) = m_history(i-1, :)
-              D_mix_history(i, :) = D_mix_history(i-1, :)
-              conv_vel_history(i, :) = conv_vel_history(i-1, :)
-              alpha_PZ_history(i) = alpha_PZ_history(i-1)
+          do i = rolling_count, 2, -1
               r_core_history(i) = r_core_history(i-1)
-              m_core_history(i) = m_core_history(i-1)
-              D_OZ_history(i) = D_OZ_history(i-1)
-              dt_history(i) = dt_history(i-1)
               r_PZ_history(i) = r_PZ_history(i-1)
-              r_ob_history(i) = r_ob_history(i-1)
+              dt_history(i) = dt_history(i-1)
           end do
-          m_history(1, :) = 0
-          D_mix_history(1, :) = 0
-          conv_vel_history(1, :) = 0
-          alpha_PZ_history(1) = 0
           r_core_history(1) = 0
           r_PZ_history(1) = 0
-          m_core_history(1) = 0
-          D_OZ_history(1) = 0
           dt_history(1) = s % dt
-          r_ob_history(1) = 0
           avg_time = 0
           do i = 1, history_count
                 avg_time = avg_time + dt_history(i)
@@ -195,21 +164,14 @@
 
           ! Flag PZ as anonymous_mixing
           if (doing_DBP) then
-            do k=k_PZ_mix_bottom, k_PZ_top, -1
-                s%mixing_type(k) = anonymous_mixing
+            do k=s%nz, 1, -1
+                if (s% r(k) < r_PZ .and. s% r(k) > r_core_history(1)) then
+                    s%mixing_type(k) = anonymous_mixing
+                end if
             end do
           endif
 
-
           do_retry = .false.
-          ! ! Save model when no longer on pre-main sequence and a convective core has appeared.
-          ! ! The central hydrogen fraction needs to have decreased by a small amount,
-          ! ! to make sure that core H-burning has started, and the star is near the ZAMS.
-          ! if (s%job% create_pre_main_sequence_model) then
-          !     if ((s%mixing_type(s%nz) .eq. convective_mixing) .and. (X_ini-s% center_h1 > 1d-6)) then
-          !         extras_check_model = terminate
-          !     endif
-          ! endif
 
           ! by default, indicate where (in the code) MESA terminated
           if (extras_check_model == terminate) s% termination_code = t_extras_check_model
@@ -223,7 +185,7 @@
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
-          how_many_extra_history_columns = 7
+          how_many_extra_history_columns = 12
       end function how_many_extra_history_columns
 
 
@@ -241,6 +203,7 @@
 
           call star_eval_conv_bdy_r(s, 1, r_cb, ierr)
 
+          ! TODO: update this
           if (.not. doing_DBP) then
               mass_PZ=0
               delta_r_PZ=0
@@ -265,6 +228,11 @@
           names(5) = 'r_core'
           names(6) = 'rho_core_top_pen'
           names(7) = 'r_cb'
+          names(8)  = 'roll_m_core'
+          names(9)  = 'roll_mass_pen_zone'
+          names(10) = 'roll_delta_r_pen_zone'
+          names(11) = 'roll_alpha_pen_zone'
+          names(12) = 'roll_r_core'
 
           vals(1) = m_core/Msun
           vals(2) = mass_PZ/Msun
@@ -273,6 +241,11 @@
           vals(5) = r_core/Rsun
           vals(6) = rho_core_top
           vals(7) = r_cb/Rsun
+          vals(8) = m_core_rolled / Msun
+          vals(9) = mass_PZ_rolled / Msun
+          vals(10) = delta_r_PZ_rolled / Rsun
+          vals(11) = alpha_PZ_rolled
+          vals(12) = r_core_rolled / Rsun
 
       end subroutine data_for_extra_history_columns
 
@@ -372,10 +345,8 @@
           if (ierr /= 0) return
           extras_finish_step = keep_going
 
-          alpha_PZ_old = alpha_PZ
-
           ! stop at carbon depletion
-          if (s% x_logical_ctrl(1) .eqv. .true.) then
+          if (do_stop_at_carbondep) then
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
                 write(*,*) "Carbon depletion"
                 extras_finish_step = terminate
@@ -384,9 +355,7 @@
              end if
           end if
           ! stop at onset of core-collapse
-          if (s% x_logical_ctrl(2) .eqv. .true.) then
-             ! don't stop at O depletion
-             s% x_logical_ctrl(1) = .false.
+          if (do_stop_at_corecollapse) then
              ! change net on the fly post C depletion
              if ((s%xa(s%net_iso(io16), s%nz) >= 0.5 ) .and. (s%xa(s%net_iso(ic12), s%nz) <= 1e-5)) then
                 write(fname, fmt="(a10)") 'C_depl.mod'
@@ -396,7 +365,7 @@
                 s% job% new_net_name = "mesa_128.net"
                 write(*,*) "Change net to ", s% job%new_net_name
                 ! flip switch so we don't enter here again
-                s% x_logical_ctrl(2) = .false.
+                do_stop_at_corecollapse = .false.
              end if
           end if
 
@@ -433,35 +402,6 @@
 
           if (s%D_mix(1) .ne. s%D_mix(1)) return  ! To ignore iterations where Dmix and gradT are NaNs
 
-          ! Properly set D_mix and conv_vel based on history averages
-          ! This is not quite right -- need to do it based on mass coordinate.
-          ! indx = history index
-          ! indx2 = history array index
-          ! indx3 = mass coordinate index
-          !if (history_count > 1) then
-          !  do indx3 = s % nz, 1, -1
-          !    conv_vel(indx3) = 0
-          !    do indx = 1, history_count
-          !      do indx2 = 1, s % x_integer_ctrl(2)
-          !        if (m_history(indx, indx2) >= s % m(indx3)) exit
-          !      end do
-          !      if (indx2 < s % x_integer_ctrl(2)) then
-          !          conv_vel(indx3) = s% conv_vel(indx3) + conv_vel_history(indx, indx2)*dt_history(indx)/avg_time
-          !      endif
-          !    end do
-          !  end do
-          !end if
-
-          ! set histories for m, D_mix, conv_vel
-          do i = 0, s% x_integer_ctrl(2)
-              indx = s% nz - i
-              if (indx < 1) exit
-              if (i >= s% x_integer_ctrl(2)) exit
-              m_history(1,i+1) = s% m(indx)
-              D_mix_history(1,i+1) = s% D_mix(indx)
-              conv_vel_history(1,i+1) = s% conv_vel(indx)
-          end do
-
           if (s%num_conv_boundaries .lt. 1) then  ! Is zero at initialisation of the run
           if (DEBUG) then
               write(*,*) 'runstarex_gradT: skip since there are no convective boundaries'
@@ -469,7 +409,7 @@
           return
           endif
 
-          if (s% x_logical_ctrl(10) .eqv. .false.) then
+          if (do_mix_gradT .eqv. .false.) then
               if (DEBUG) then
                   write(*,*) 'runstarex_gradT: skip since x_logical_ctrl(10) == false.'
               end if
@@ -517,8 +457,8 @@
           integer, intent(out) :: ierr
           type (star_info), pointer :: s
 
-          logical, parameter :: DEBUG = .FALSE.
-          real(dp) :: f, f2, f0
+          logical, parameter :: DEBUG = .TRUE.
+          real(dp) :: f, f0
           real(dp) :: D0, Delta0
           real(dp) :: w
           real(dp) :: factor
@@ -526,7 +466,7 @@
           real(dp) :: r_ob, D_ob, vc_ob
           logical  :: outward
           integer  :: dk, k, k_ob, indx, indx2, indx3
-          real(dp) :: r, dr, r_step, r_PZ
+          real(dp) :: r, dr, r_step
 
           ! Evaluate the overshoot diffusion coefficient D(k_a:k_b) and
           ! mixing velocity vc(k_a:k_b) at the i'th convective boundary,
@@ -551,28 +491,18 @@
 
           if (.not. step2) then         
               call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
-              ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region
-              alpha_PZ_history(1) = alpha_PZ
-              !alpha_PZ = 0
-              !do indx = 1, history_count
-              !    alpha_PZ = alpha_PZ + alpha_PZ_history(indx)
-              !end do
-              !alpha_PZ = alpha_PZ / history_count
-              
-          end if
+              end if
           ! Extract parameters
-          
+          ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region              
           f = alpha_PZ + s%overshoot_f0(j) 
-          
-                           ! extend of step function (a_ov)
-          f0 = s%overshoot_f0(j)
-          f2 = s%overshoot_f(j)            ! exponential decay (f_ov)
 
+          ! extend of step function (a_ov)
+          f0 = s%overshoot_f0(j)
           D0 = s%overshoot_D0(j)
           Delta0 = s%overshoot_Delta0(j)
 
-          if (f < 0.0_dp .OR. f0 <= 0.0_dp .OR. f2 < 0.0_dp) then
-              write(*,*) 'ERROR: for extended convective penetration, must set f0 > 0, and f and f2 >= 0'
+          if (f < 0.0_dp .OR. f0 <= 0.0_dp) then
+              write(*,*) 'ERROR: for extended convective penetration, must set f0 > 0, and f >= 0'
               write(*,*) 'see description of overshooting in star/defaults/control.defaults'
               ierr = -1
               return
@@ -582,19 +512,44 @@
           call star_eval_conv_bdy_r(s, i, r_cb, ierr)
           if (ierr /= 0) return
 
+
+          if (s%r(s%nz-10) >= r_cb) then
+             !Bail -- very small core.
+            if (DEBUG) then
+                write(*,*) 'core is not resolved; bailing on overshoot'
+            end if
+              ! Use no extra mixing.
+              D(:)  = s%D_mix(:)
+              vc(:) = s%conv_vel(:)
+           
+            ! Store history before bailing
+            r_PZ_history(1) = r_cb
+            r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
+            r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
+            do indx = 2, history_count
+                !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
+                r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
+                r_core_rolled = r_core_history(indx) * dt_history(indx) / avg_time
+            end do
+            delta_r_PZ_rolled = r_PZ - r_core_rolled
+            do k = s% nz, 1, -1
+              if (s% r(k) >= r_core_rolled) then
+                  m_core_rolled = s % m(k)
+                  alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
+              else if (s % r(k) >= r_PZ) then
+                  mass_PZ_rolled = s % m(k) - m_core_rolled
+                  exit
+              end if
+            end do
+            return
+          endif
+
           call star_eval_conv_bdy_Hp(s, i, Hp_cb, ierr)
           if (ierr /= 0) return
 
           ! Evaluate overshoot boundary (_ob) parameters
           call star_eval_over_bdy_params(s, i, f0, k_ob, r_ob, D_ob, vc_ob, ierr)
           if (ierr /= 0) return
-
-          D_OZ_history(1) = D_ob
-          r_ob_history(1) = r_ob
-          !D_ob = 0
-          !do indx = 1, history_count
-          !  D_ob = D_ob + D_OZ_history(indx) / history_count
-          !end do
 
           ! Loop over cell faces, adding overshoot until D <= overshoot_D_min
           outward = s%top_conv_bdy(i)
@@ -609,94 +564,78 @@
               dk = 1
           endif
 
+          
           if (f > 0.0_dp) then
               r_step = f*Hp_cb
               r_PZ_history(1) = r_step + r_ob
 
               ! Get average outer radius of PZ
+
+              r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
               r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
               do indx = 2, history_count
                   !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
                   r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
+                  r_core_rolled = r_core_history(indx) * dt_history(indx) / avg_time
+              end do
+              delta_r_PZ_rolled = r_PZ - r_core_rolled
+              do k = s% nz, 1, -1
+                if (s% r(k) >= r_core_rolled) then
+                    m_core_rolled = s % m(k)
+                    alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
+                else if (s % r(k) >= r_PZ) then
+                    mass_PZ_rolled = s % m(k) - m_core_rolled
+                    exit
+                end if
               end do
               factor = 1.0_dp
           else
               r_step = 0.0_dp
           endif
 
-          !write(*,*) 'D0, Delta0, D_ob, factor', D0, Delta0, D_ob, factor
 
-          k_PZ_mix_bottom = k_a
           face_loop : do k = k_a, k_b, dk 
               ! Evaluate the extended convective penetration factor
               r = s%r(k)
-              if (r > r_PZ) exit face_loop
-              !write(*,*) 'r, r_PZ', r/Rsun, r_PZ/Rsun
-              !if (outward) then
-              !    dr = r - r_ob
-              !else
-              !    dr = r_ob - r
-              !endif
-              !
-              !if (dr < r_step .AND. f > 0.0_dp) then  ! step factor
-              !    factor = 1.0_dp
-              !else
-              !    if ( f2 > 0.0_dp) then                ! exponential factor
-              !        factor = exp(-2.0_dp*(dr-r_step)/(f2*Hp_cb))
-              !    else
-              !        factor = 0.0_dp
-              !    endif
-              !endif
+              if (r > r_PZ .and. r > r_PZ_history(1)) exit face_loop
               
               ! Store the diffusion coefficient and velocity
               D(k) = (D0 + Delta0*D_ob)*factor
               vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
-              if (s% D_mix(k) < D(k)) then
+              if (s% D_mix(k) < D(k)) then !DBCP mixing.
                 !write(*,*) 'overwriting D_mix with D'
                 s% D_mix(k) = D(k)
                 s%conv_vel(k) = vc(k)
-              else 
-                !write(*,*) 'preserving D_mix', D(k), s% D_mix(k)
-                D(k) = s% D_mix(k)
-                vc(k) = s%conv_vel(k)
+                s% mixing_type(k) = anonymous_mixing
+              else
+                D(k) = s % D_mix(k)
+                vc(k) = s % conv_vel(k)
               endif
-              !if (s % nz - k < s % x_integer_ctrl(2)) then
-              !  D_mix_history(1, s % nz - k + 1) = D(k)
-              !  conv_vel_history(1, s % nz - k + 1) = vc(k)
-              !endif
-
+              
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
                   k_b = k
                   exit face_loop
-              else
-                  s% mixing_type(k) = anonymous_mixing
               endif
 
           end do face_loop
 
-          
-
           if (step2) then
+              ! Free to continue evolution
               step2 = .false.
           else
               ! Adjust structure with new grads.
               step2 = .true.
-!              call s% other_adjust_mlt_gradT_fraction(id, ierr)
-!              call star_set_mlt_vars(id, 1, s % nz, ierr)
               call star_set_vars(id, s% dt, ierr)
           endif
 
           if (DEBUG) then
               write(*,*) 'step exponential overshoot:'
-              write(*,*) '  k_a, k_b   =', k_a, k_b
-              write(*,*) '  r_a, r_b   =', s%r(k_a), s%r(k_b)
-              write(*,*) '  r_ob, r_cb =', r_ob, r_cb
+              write(*,*) '  r_PZ, r_cb =', r_PZ, r_cb
               write(*,*) '  Hp_cb      =', Hp_cb
           end if
 
       end subroutine extended_convective_penetration
-
 
 
       subroutine dissipation_balanced_penetration(s, id)
@@ -711,6 +650,7 @@
          real(dp) :: Lint, V_CZ, Favg, RHS, dr, h, dLint
          real(dp) :: r_cb
 
+         ! If we ever hit this, set flag to true.
          doing_DBP = .true.
          V_CZ = 0d0
          Lint = 0d0
@@ -719,21 +659,11 @@
          call star_eval_conv_bdy_r(s, 1, r_cb, ierr)
          k_PZ_bottom = k
          r_core_history(1) = r_cb
-         m_core_history(1) = s%m(k)
          m_core = s%m(k)
          r_core = r_cb
          
          rho_core_top = s%rho(k)
          h = s%scale_height(k)
-
-         !r_core = 0
-         !m_core = 0
-         !do indx = 1, history_count
-         !         r_core = r_core + r_core_history(indx)
-         !         m_core = m_core + m_core_history(indx)
-         !end do
-         !r_core = r_core / history_count
-         !m_core = m_core / history_count
 
          ! prescription based on Jermyn A. et al (2022)  https://arxiv.org/pdf/2203.09525.pdf
          ! Equation A1 is used here.
