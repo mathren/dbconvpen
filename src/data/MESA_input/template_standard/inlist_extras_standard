@@ -1,0 +1,83 @@
+&star_job
+
+  ! Save at exit
+    save_model_when_terminate = .true.
+    write_profile_when_terminate = .true.
+    save_pulse_data_when_terminate = .true.
+
+  ! display on-screen plots
+    pgstar_flag = .true.
+
+/ ! end of star_job namelist
+
+
+&eos
+/ ! end of eos namelist
+
+
+&kap
+
+    kap_file_prefix = 'OP_a09_nans_removed_by_hand'
+    kap_CO_prefix   = 'a09_co' ! 'gs98_co'(default)
+    kap_lowT_prefix = 'lowT_fa05_a09p' !'lowT_fa05_gs98' (default)
+
+/ ! end of kap namelist
+
+
+&controls
+
+    ! Reactions network
+        default_net_name = 'cno_extras_o18_to_mg26_plus_fe56.net'
+
+    ! Mixing
+        set_min_D_mix = .true.
+
+        use_Ledoux_criterion = .true.
+
+        ! Convection
+        MLT_option = 'Cox'
+        mixing_length_alpha = 1.8d0
+        do_conv_premix = .true.
+
+        ! x_logical_ctrl(10) == true uses peclet boundaries. == false turns it off.
+        x_logical_ctrl(10) = .false.
+
+        ! Thermohaline
+        thermohaline_coeff = 1d0
+        thermohaline_option = 'Brown_Garaud_Stellmach_13'
+
+    ! Atmosphere
+        atm_option = 'T_tau'
+        atm_T_tau_relation = 'Krishna_Swamy'
+        atm_T_tau_opacity = 'iterated'
+
+    ! Wind
+        hot_wind_scheme = 'Dutch'
+        cool_wind_RGB_scheme = 'Dutch'
+        cool_wind_AGB_scheme = 'Dutch'
+        Dutch_scaling_factor = 0.8
+
+    ! Output
+        terminal_interval = 10
+        photo_interval = 1000
+        photo_digits = 5
+        write_profiles_flag = .false.
+        history_interval = 1
+
+        ! Pulsations -- non-defaults only.
+        pulse_data_format = 'GYRE'
+        add_atmosphere_to_pulse_data = .true.
+        keep_surface_point_for_pulse_data = .true.
+
+    ! Meshing
+      x_logical_ctrl(11) = .true. ! Use xtra meshing inlist
+
+    ! Timestepping
+      time_delta_coeff = 0.5d0
+      max_timestep_factor = 1.1d0
+      timestep_factor_for_retries = 0.5d0
+      delta_HR_limit = 1d-2
+      dX_nuc_drop_limit = 1d-2
+
+
+/ ! end of controls namelist
