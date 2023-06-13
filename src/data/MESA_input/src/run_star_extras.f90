@@ -35,13 +35,13 @@
       integer :: rolling_count
 
       ! Global variables -- helps with outputs, etc.
-      real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, r_PZ, rho_core_top
+      real (dp) :: m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, r_PZ, m_corePZ, rho_core_top
       ! real (dp) :: X_ini
       integer :: k_PZ_top, k_PZ_bottom
       logical :: doing_DBP = .false., step2 = .false.
 
       ! Rolling history variables; need history of: dt and r_core (_PZ variable is core + PZ)
-      real(dp), allocatable :: r_core_history(:), r_PZ_history(:), dt_history(:)
+      real(dp), allocatable :: r_core_history(:), r_PZ_history(:), m_PZ_history(:), dt_history(:)
       integer :: history_count = 0
       real(dp) :: avg_time = 0.0_dp
       real(dp) :: r_core_rolled, delta_r_PZ_rolled, m_core_rolled, mass_PZ_rolled, alpha_PZ_rolled
@@ -103,9 +103,9 @@
           if (rolling_count < 1) rolling_count = 1
 
           ! allocate DBCP rolling memory
-          write(*,*) 'allocating'    
           allocate(r_core_history(rolling_count))
           allocate(r_PZ_history(rolling_count))
+          allocate(m_PZ_history(rolling_count))
           allocate(dt_history(rolling_count))
 
       end subroutine extras_controls
@@ -138,10 +138,12 @@
           do i = rolling_count, 2, -1
               r_core_history(i) = r_core_history(i-1)
               r_PZ_history(i) = r_PZ_history(i-1)
+              m_PZ_history(i) = m_PZ_history(i-1)
               dt_history(i) = dt_history(i-1)
           end do
           r_core_history(1) = 0
           r_PZ_history(1) = 0
+          m_PZ_history(1) = 0
           dt_history(1) = s % dt
           avg_time = 0
           do i = 1, history_count
@@ -240,17 +242,10 @@
             if (s% r(k) >= r_core_rolled .and. m_core_rolled .eq. 0.0_dp) then
                 m_core_rolled = s % m(k)
                 alpha_PZ_rolled = delta_r_PZ_rolled / s % scale_height(k)
-            else if (s % r(k) >= r_PZ) then
-                mass_PZ_rolled = s % m(k) - m_core_rolled
                 exit
             end if
           end do
-
-!          write(*,*) "m_cores", m_core/Msun, m_core_rolled/Msun
-!          write(*,*) "m_PZ", mass_PZ/Msun, mass_PZ_rolled/Msun
-!          write(*,*) "alpha_PZ", alpha_PZ, alpha_PZ_rolled
-!          write(*,*) "r_cores", r_core/Rsun, r_core_rolled/Rsun
-!          write(*,*) "delta_r_PZ", delta_r_PZ/Rsun, delta_r_PZ_rolled/Rsun
+          mass_PZ_rolled = m_corePZ - m_core_rolled
 
           vals(1) = m_core/Msun
           vals(2) = mass_PZ/Msun
@@ -441,7 +436,6 @@
                 conv_vel(k) = 0
               endif
               s% adjust_mlt_gradT_fraction(k) = calculate_peclet_fraction(s, k, conv_vel(k), ierr)
-              !write(*,*) 'fraction, conv_vel', s% adjust_mlt_gradT_fraction(k), conv_vel(k)
           end do
 
       end subroutine other_adjust_mlt_gradT_fraction_Peclet
@@ -490,9 +484,12 @@
           ! structure at the convective core boundary through asteroseismology",
           ! A&A, 628, 76 (2019)
 
+
           ierr = 0
           call star_ptr(id, s, ierr)
           if (ierr /= 0) return
+
+          
 
           if ((i .ne. 1) .or. (s%mixing_type(s%nz) .ne. convective_mixing)) then
               write(*,'(A,i2,A,i2)') 'ERROR: dissipation_balanced_penetration can only be used for core convection, &
@@ -502,10 +499,8 @@
               return
           end if
 
-
-          if (.not. step2) then         
-              call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
-              end if
+ 
+          call dissipation_balanced_penetration(s, id) !, m_core, mass_PZ, delta_r_PZ, alpha_PZ, r_core, rho_core_top)
           ! Extract parameters
           ! alpha_PZ is distance from core boundary outward, so add f0 to it to make PZ zone reach that region              
           f = alpha_PZ + s%overshoot_f0(j) 
@@ -527,26 +522,8 @@
           if (ierr /= 0) return
 
 
-          if (s%r(s%nz-10) >= r_cb) then
-             !Bail -- very small core.
-            if (DEBUG) then
-                write(*,*) 'core is not resolved; bailing on overshoot'
-            end if
-              ! Use no extra mixing.
-              D(:)  = 0!s%D_mix(:)
-              vc(:) = 0!s%conv_vel(:)
-           
-            ! Store history before bailing
-            r_PZ_history(1) = r_cb
-            r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
-            r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
-            do indx = 2, history_count
-                !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
-                r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
-                r_core_rolled = r_core_rolled + r_core_history(indx) * dt_history(indx) / avg_time
-            end do
-            return
-          endif
+          call star_eval_conv_bdy_k(s, i, k, ierr)
+          if (ierr /= 0) return
 
           call star_eval_conv_bdy_Hp(s, i, Hp_cb, ierr)
           if (ierr /= 0) return
@@ -568,18 +545,50 @@
               dk = 1
           endif
 
+          if (s%r(s%nz-10) >= r_cb) then
+             !Bail -- very small core.
+            if (DEBUG) then
+                write(*,*) 'core is not resolved; bailing on overshoot'
+            end if
+              ! Use no extra mixing.
+              D(:)  = 0  !s%D_mix(:)
+              vc(:) = 0  !s%conv_vel(:)
+           
+            ! Store history before bailing
+            r_PZ_history(1) = r_cb
+            m_PZ_history(1) = s%m(k)
+            r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
+            r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
+            m_corePZ = m_PZ_history(1) * dt_history(1) / avg_time
+            do indx = 2, history_count
+                r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
+                r_core_rolled = r_core_rolled + r_core_history(indx) * dt_history(indx) / avg_time
+                m_corePZ = m_corePZ + m_PZ_history(indx) * dt_history(indx) / avg_time
+            end do
+            return
+          endif
+
+
           
           if (f > 0.0_dp) then
               r_step = f*Hp_cb
               r_PZ_history(1) = r_step + r_ob
+              do k = k_ob, 1, -1
+                if (s%r(k) > r_PZ_history(1)) then
+                    m_PZ_history(1) = s%m(k)
+                    exit
+                end if
+              end do
 
               ! Get average outer radius of PZ
               r_core_rolled = r_core_history(1) * dt_history(1) / avg_time
               r_PZ = r_PZ_history(1) * dt_history(1) / avg_time
+              m_corePZ = m_PZ_history(1) * dt_history(1) / avg_time
               do indx = 2, history_count
                   !write(*,*) 'dt_history(indx), avg_time', indx, r_PZ_history(indx), dt_history(indx), avg_time
                   r_PZ = r_PZ + r_PZ_history(indx) * dt_history(indx) / avg_time
                   r_core_rolled = r_core_rolled + r_core_history(indx) * dt_history(indx) / avg_time
+                  m_corePZ = m_corePZ + m_PZ_history(indx) * dt_history(indx) / avg_time
               end do
               factor = 1.0_dp
           else
@@ -589,21 +598,16 @@
 
           face_loop : do k = k_a, k_b, dk 
               ! Evaluate the extended convective penetration factor
-              r = s%r(k)
-              if (r > r_PZ .and. r > r_PZ_history(1)) exit face_loop
-              
-              ! Store the diffusion coefficient and velocity
-              D(k) = (D0 + Delta0*D_ob)*factor
-              vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
-              if (s% D_mix(k) < D(k)) then !DBCP mixing.
-                !write(*,*) 'overwriting D_mix with D'
-                s% D_mix(k) = D(k)
-                s%conv_vel(k) = vc(k)
+              if (s%m(k) <= m_corePZ .and. s%mixing_type(k) .ne. convective_mixing) then
+                D(k) = (D0 + Delta0*D_ob)*factor
+                vc(k) = (D0/D_ob + Delta0)*vc_ob*factor
                 s% mixing_type(k) = anonymous_mixing
               else
-                D(k) = s % D_mix(k)
-                vc(k) = s % conv_vel(k)
-              endif
+                D(k) = s% D_mix(k)
+                vc(k) = s% conv_vel(k)
+              end if
+              s% D_mix(k) = D(k)
+              s%conv_vel(k) = vc(k)
               
               ! Check for early overshoot completion
               if (D(k) < s%overshoot_D_min) then
