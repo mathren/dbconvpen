@@ -15,8 +15,8 @@
 </a>
 </p>
 
-Project on convective penetration implementation in MESA.
-
-[New overleaf link](https://www.overleaf.com/project/6348299a3498506108f5c309)
-
 An open source scientific article created using the [showyourwork](https://github.com/showyourwork/showyourwork) workflow.
+
+Project on convective penetration implementation in MESA. The code available here is the original version used in the paper.
+For new projects, we recommend using the implementation in [MESA-contrib](https://github.com/MESAHub/mesa-contrib/tree/release/hooks/dbconvpen).
+
