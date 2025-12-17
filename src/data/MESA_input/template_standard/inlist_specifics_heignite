@@ -1,0 +1,55 @@
+! inlist to evolve from the TAMS to Helium depletion
+
+&star_job
+  ! see star/defaults/star_job.defaults
+
+  ! begin with a pre-main sequence model
+    create_pre_main_sequence_model = .false.
+
+  ! save a model at the end of the run
+    save_model_filename = 'MASSM_at_heignite.mod'
+    filename_for_profile_when_terminate = 'MASSM_at_heignite_profile.data'
+    save_pulse_data_filename = 'MASSM_at_heignite_profile.GYRE'
+
+  ! load from a saved model
+    load_saved_model = .true.
+    load_model_filename = 'MASSM_at_TAMS.mod'
+
+/ ! end of star_job namelist
+
+&eos
+  ! eos options
+  ! see eos/defaults/eos.defaults
+
+/ ! end of eos namelist
+
+&kap
+  ! kap options
+  ! see kap/defaults/kap.defaults
+
+  use_Type2_opacities = .true.
+  Zbase = METALLICITY
+
+/ ! end of kap namelist
+
+&controls
+  ! see star/defaults/controls.defaults
+
+  ! starting specifications
+    initial_mass = MASS ! in Msun units
+    initial_z = METALLICITY
+
+  ! Mixing
+    min_D_mix = DMIX_VALUE
+    overshoot_D_min = DMIX_VALUE
+
+  ! when to stop
+    ! stop when Helium ignites.
+    stop_at_phase_He_Burn = .true.
+    xa_central_lower_limit_species(1) = 'he4'
+    xa_central_lower_limit(1) = HEIGNITE 
+
+  ! output
+    star_history_name = 'history_to_heignite.data'
+
+/ ! end of controls namelist
